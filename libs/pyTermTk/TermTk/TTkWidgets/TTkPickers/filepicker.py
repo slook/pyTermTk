@@ -503,7 +503,7 @@ class TTkFileButtonPicker(TTkButton):
 
     @pyTTkSlot()
     def _fileButtonClicked(self) -> None:
-        filePicker = TTkFileDialogPicker(pos = (3,3), size=(80,30),
+        filePicker = TTkFileDialogPicker(pos = (3,3), size=(100,40),
                                          caption=self._caption,
                                          path=self._path,
                                          filter=self._filter,

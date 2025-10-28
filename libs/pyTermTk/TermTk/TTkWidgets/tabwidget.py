@@ -133,11 +133,11 @@ class _TTkTabStatus():
                 self.currentChanged.emit(index)
             self.statusUpdated.emit()
 
-    @pyTTkSlot(int)
-    def _resetHighlighted(self) -> None:
-        if self.highlighted != -1:
-            self.highlighted = None
-            self.statusUpdated.emit()
+    #@pyTTkSlot(int)
+    #def _resetHighlighted(self) -> None:
+    #    if self.highlighted != -1:
+    #        self.highlighted = -1
+    #        self.statusUpdated.emit()
 
     def _insertButton(self, index:int, button:TTkTabButton) -> None:
         self.tabButtons.insert(index,button)
@@ -174,7 +174,7 @@ _tabGlyphs = {
 _tabStyle:Dict[str,Any]  = {
             'default':     {'color': TTkColor.fgbg("#dddd88","#000044"),
                             'bgColor': TTkColor.fgbg("#000000","#8888aa"),
-                            'borderColor': TTkColor.RST,
+                            'borderColor': TTkColor.fg('#8888aa'),
                             'borderHighlightColors': {
                                 'main' : TTkColor.fg('#00FFFF'),
                                 'fade' : TTkColor.fg('#88FF88'),
@@ -192,7 +192,7 @@ _tabStyle:Dict[str,Any]  = {
         }
 
 _tabStyleNormal = {
-            'default':  {'borderColor': TTkColor.RST},
+            'default':  {'borderColor': TTkColor.fg('#8888aa')},
             'disabled': {'borderColor': TTkColor.fg('#888888')},
             'focus':    {'borderColor': TTkColor.RST},
         }
@@ -247,7 +247,7 @@ class _TTkTabColorButton(TTkWidget):
                 'hover': {
                     'color': TTkColor.fgbg("#dddd88","#000050")+TTkColor.BOLD,
                     'bgColor': TTkColor.fgbg("#007771","#8888aa")+TTkColor.BOLD,
-                    'borderColor': TTkColor.fg("#AAFFFF")+TTkColor.BOLD
+                    'borderColor': TTkColor.fg("#FFAA40")+TTkColor.BOLD
                 },
             }
 
@@ -409,16 +409,22 @@ class TTkTabButton(_TTkTabColorButton):
             # ┌─────────╔═════════╗──────────────╭─────────╮──────────────┐─────────┐
             # │Label 1.1║Label 1.2║Label Test 1.3│Label 1.4│Label Test 1.5│Label 1.6│
             # ╞═════════╩═════════╩══════════════╧═════════╧════════════════════════╡
+
             if is_highlighted:
+                # ╭─────────╮  ╭─────────╮  ╭─────────╮
+                # │Label 1.1│  │Label 1.2│  │Label 1.6│
+                # ╞═════════╧  ╧═════════╧  ╧═════════╡
+                # Initial
+                txtTop    = tt[7]  + tt[1] *(w-2) + tt[8]
+                txtCenter = tt[9]  + label        + tt[9]
+                bLeft  = tt[11] if self._sideEnd & TTkK.LEFT  else tt[13]
+                bRight = tt[15] if self._sideEnd & TTkK.RIGHT else tt[13]
+                txtBottom = bLeft + tt[12]*(w-2) + bRight
                 borderColor1_1 = borderHighlightColors['main']
                 borderColor1_2 = borderHighlightColors['fade']
                 borderColor1_3 = borderColor
-            else:
-                borderColor1_1 = borderColor
-                borderColor1_2 = borderColor
-                borderColor1_3 = borderColor
 
-            if is_selected:
+            elif is_selected:
                 # ╔═════════╗  ╔═════════╗  ╔═════════╗
                 # ╿Label 1.1║  ║Label 1.2║  ║Label 1.6╿
                 # ╞═════════╩  ╩═════════╩  ╩═════════╡
@@ -429,17 +435,9 @@ class TTkTabButton(_TTkTabColorButton):
                 bLeft  = tt[11] if self._sideEnd & TTkK.LEFT  else tt[14]
                 bRight = tt[15] if self._sideEnd & TTkK.RIGHT else tt[14]
                 txtBottom = bLeft + tt[12]*(w-2) + bRight
-
-            elif is_highlighted:
-                # ╭─────────╮  ╭─────────╮  ╭─────────╮
-                # │Label 1.1│  │Label 1.2│  │Label 1.6│
-                # ╞═════════╧  ╧═════════╧  ╧═════════╡
-                # Initial
-                txtTop    = tt[7]  + tt[1] *(w-2) + tt[8]
-                txtCenter = tt[9]  + label        + tt[9]
-                bLeft  = tt[11] if self._sideEnd & TTkK.LEFT  else tt[13]
-                bRight = tt[15] if self._sideEnd & TTkK.RIGHT else tt[13]
-                txtBottom = bLeft + tt[12]*(w-2) + bRight
+                borderColor1_1 = TTkColor.fg("#FFAA40")  # borderHighlightColors['fade']
+                borderColor1_2 = borderHighlightColors['main']
+                borderColor1_3 = borderColor
 
             else:
                 # ┌─────────┐  ┌─────────┐  ┌─────────┐
@@ -450,6 +448,10 @@ class TTkTabButton(_TTkTabColorButton):
                 bLeft  = tt[11] if self._sideEnd & TTkK.LEFT  else tt[12]
                 bRight = tt[15] if self._sideEnd & TTkK.RIGHT else tt[12]
                 txtBottom = bLeft + tt[12]*(w-2) + bRight
+                borderColor1_1 = borderColor
+                borderColor1_2 = borderColor
+                borderColor1_3 = borderColor
+
             canvas.drawText(pos=(0,0),color=borderColor1_1,text=txtTop)
             canvas.drawText(pos=(0,1),color=borderColor1_2,text=txtCenter)
             canvas.drawText(pos=(0,2),color=borderColor1_3,text=txtBottom)
@@ -458,30 +460,30 @@ class TTkTabButton(_TTkTabColorButton):
             #            Selected                 HighLighted
             # │Label 2.1║Label 2.2║Label Test 2.3│Label 2.4│Label Test 2.5│Label 2.6│
             # └─────────╚═════════╝──────────────└─────────┘──────────────┘─────────┘
+
             if is_highlighted:
-                borderColor2_1 = borderHighlightColors['main']
-                borderColor2_2 = borderHighlightColors['fade']
-            else:
-                borderColor2_1 = borderColor
-                borderColor2_2 = borderColor
-
-            if is_selected:
-                # ║Label 2.1║
-                # ╚═════════╝
-                txtCenter = tt[10] + label        + tt[10]
-                txtBottom = tt[21] + tt[5] *(w-2) + tt[22]
-
-            elif is_highlighted:
                 # │Label 2.1│
                 # ╰─────────╯
                 txtCenter = tt[9]  + label        + tt[9]
                 txtBottom = tt[23] + tt[19]*(w-2) + tt[24]
+                borderColor2_1 = borderHighlightColors['main']
+                borderColor2_2 = borderHighlightColors['fade']
+
+            elif is_selected:
+                # ║Label 2.1║
+                # ╚═════════╝
+                txtCenter = tt[10] + label        + tt[10]
+                txtBottom = tt[21] + tt[5] *(w-2) + tt[22]
+                borderColor2_1 = TTkColor.fg("#FFAA40")
+                borderColor2_2 = TTkColor.fg("#FFAA40")  # style['hover']['borderColor'] # borderHighlightColors['main']
 
             else:
                 # │Label 2.1│
                 # └─────────┘
                 txtCenter = tt[9]  + label        + tt[9]
                 txtBottom = tt[18] + tt[19]*(w-2) + tt[20]
+                borderColor2_1 = borderColor
+                borderColor2_2 = borderColor
 
             canvas.drawText(pos=(0,0),color=borderColor2_2,text=txtCenter)
             canvas.drawText(pos=(0,1),color=borderColor2_1,text=txtBottom)
@@ -491,22 +493,7 @@ class TTkTabButton(_TTkTabColorButton):
             bgColor:TTkColor = style['bgColor']
             glyphs = style['glyphs']['border'][self._tabStatus.barType]
 
-            if is_selected:
-                if is_highlighted:
-                    textColor += TTkColor.CYAN
-                selectedBgColor = textColor.background()
-                if self._sideEnd & TTkK.LEFT:
-                    _l = TTkString(' ',selectedBgColor)
-                else:
-                    _l = TTkString(glyphs[0],selectedBgColor+bgColor.invertFgBg().foreground())
-                if self._sideEnd & TTkK.RIGHT:
-                    _r = TTkString(' ',selectedBgColor)
-                else:
-                    _r = TTkString(glyphs[1],selectedBgColor+bgColor.invertFgBg().foreground())
-                txtCenter = _l + label + _r
-                canvas.drawText(pos=(0,0),color=selectedBgColor,text=txtCenter)
-
-            elif is_highlighted:
+            if is_highlighted:
                 highlightedBgColor = borderHighlightColors['fade'].invertFgBg().background()
                 selectedColor = textColor.background().invertFgBg()
                 textColor = TTkColor.BLUE+ highlightedBgColor
@@ -530,6 +517,21 @@ class TTkTabButton(_TTkTabColorButton):
                         _r = TTkString(glyphs[1],highlightedBgColor+bgColor.invertFgBg().foreground())
                 txtCenter = _l + label + _r
                 canvas.drawText(pos=(0,0),color=highlightedBgColor,text=txtCenter)
+
+            elif is_selected:
+                if is_highlighted:
+                    textColor += TTkColor.CYAN
+                selectedBgColor = textColor.background()
+                if self._sideEnd & TTkK.LEFT:
+                    _l = TTkString(' ',selectedBgColor)
+                else:
+                    _l = TTkString(glyphs[0],selectedBgColor+bgColor.invertFgBg().foreground())
+                if self._sideEnd & TTkK.RIGHT:
+                    _r = TTkString(' ',selectedBgColor)
+                else:
+                    _r = TTkString(glyphs[1],selectedBgColor+bgColor.invertFgBg().foreground())
+                txtCenter = _l + label + _r
+                canvas.drawText(pos=(0,0),color=selectedBgColor,text=txtCenter)
 
             else:
                 textColor = bgColor
@@ -1017,6 +1019,7 @@ class TTkTabWidget(TTkFrame):
         for i, w in enumerate(self._tabWidgets):
             if widget == w:
                 self.setCurrentIndex(i)
+                break
 
     @pyTTkSlot(int)
     def _tabChanged(self, index:int) -> None:

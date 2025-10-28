@@ -82,11 +82,12 @@ class TTkSplitter(TTkContainer):
                                     TTkK.VERTICAL   : ('╞','═','╡'),
                                     TTkK.HORIZONTAL : ('╥','║','╨') },
                                 'color': TTkColor.fgbg("#dddddd","#222222"),
-                                'borderColor': TTkColor.RST },
+                                'borderColor': TTkColor.fg("#8888aa") },
                 'disabled':    {'color': TTkColor.fg('#888888'),
                                 'borderColor':TTkColor.fg('#888888')},
                 'focus':       {'color': TTkColor.fgbg("#ffddff","#222222"),
-                                'borderColor': TTkColor.fg("#ffffaa")}
+                                'borderColor': TTkColor.fg("#ffffaa")},
+                'hover':       {'borderColor': TTkColor.fg("#FFAA40")}
             }
 
     __slots__ = (

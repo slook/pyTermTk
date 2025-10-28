@@ -103,14 +103,14 @@ class TTkLineEdit(TTkWidget):
         '''Display characters as they are entered while editing otherwise display asterisks.'''
 
     classStyle = {
-                'default':     {'color':         TTkColor.fgbg("#dddddd","#222222"),
-                                'bgcolor':       TTkColor.fgbg("#666666","#222222")+TTkColor.UNDERLINE,
-                                'selectedColor': TTkColor.fgbg("#ffffff","#008844")},
+                'default':     {'color':         TTkColor.fgbg("#dddddd","#222244")+TTkColor.BOLD,
+                                'bgcolor':       TTkColor.fgbg("#666666","#222244")+TTkColor.UNDERLINE,
+                                'selectedColor': TTkColor.fgbg("#ffffff","#D38C2D")},
                 'disabled':    {'color':         TTkColor.fg(  "#888888"),
-                                'bgcolor':       TTkColor.fg(  "#444444")+TTkColor.UNDERLINE,
+                                'bgcolor':       TTkColor.fg(  "#444444")+TTkColor.STRIKETROUGH,
                                 'selectedColor': TTkColor.fgbg("#888888","#444444")},
-                'focus':       {'color':         TTkColor.fgbg("#dddddd","#000044"),
-                                'bgcolor':       TTkColor.fgbg("#666666","#000044")+TTkColor.UNDERLINE}
+                'focus':       {'color':         TTkColor.fgbg("#ffffff","#000080")+TTkColor.BOLD,
+                                'bgcolor':       TTkColor.fgbg("#F9AA40","#000080")+TTkColor.BOLD+TTkColor.UNDERLINE}
             }
 
     __slots__ = (
@@ -505,7 +505,7 @@ class TTkLineEdit(TTkWidget):
             text = text.setColor(color=selectColor, posFrom=self._selectionFrom, posTo=self._selectionTo)
         text = text.substring(self._offset)
         canvas.fill(color=bgcolor)
-        if self._text:
+        if self._text or self.hasFocus():
             canvas.drawTTkString(pos=(0,0), text=text, color=color)
         else:
             canvas.drawTTkString(pos=(0,0), text=self._hint, color=bgcolor)

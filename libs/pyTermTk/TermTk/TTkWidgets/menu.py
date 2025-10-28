@@ -50,11 +50,11 @@ class TTkMenuButton(TTkWidget):
     '''TTkMenuButton'''
     classStyle = TTkWidget.classStyle | {
                 'default':     {'color': TTkColor.RST},
-                'highlighted': {'color': TTkColor.fg('#00FF00')+TTkColor.bg('#0055FF')},
-                'hover':       {'color': TTkColor.fg('#00FF00')+TTkColor.bg('#0077FF')},
-                'checked':     {'color': TTkColor.fg('#00FF00')+TTkColor.bg('#00FFFF')},
-                'clicked':     {'color': TTkColor.fg('#FFFF00')},
-                'disabled':    {'color': TTkColor.fg('#888888')},
+                'highlighted': {'color': TTkColor.fg('#000000')+TTkColor.bg('#D38C2D')},
+                'hover':       {'color': TTkColor.fg('#000000')+TTkColor.bg('#FFAA40')},
+                'checked':     {'color': TTkColor.fg('#D38C2D')+TTkColor.bg('#00FFFF')},
+                'clicked':     {'color': TTkColor.fg('#FFAA40')+TTkColor.bg('#0000AA')},
+                'disabled':    {'color': TTkColor.fg('#888888')+TTkColor.bg('#000000')},
             }
 
     __slots__ = (
@@ -182,8 +182,8 @@ class TTkMenuButton(TTkWidget):
             wid = self
             ox,oy = -1,0
         # Highlight the first entry in the submenu
-        if btns := [b for b in self._submenu if type(b)==TTkMenuButton]:
-            btns[0].setHighlight(True)
+        #if btns := [b for b in self._submenu if type(b)==TTkMenuButton]:
+        #    btns[0].setHighlight(True)
         TTkHelper.overlay(wid, subMenu, ox,oy)
 
     def _triggerButton(self):
