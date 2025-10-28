@@ -123,7 +123,7 @@ class TTkDate(TTkWidget):
         self._maxOrdinal = datetime.date(year=2100,month=12,day=31).toordinal()
         self._minOrdinal = datetime.date(year=1900, month=1, day=1).toordinal()
         self._state = _TTkTimeWidgetState()
-        super().__init__(**kwargs|{'size':(13,1)})
+        super().__init__(**kwargs|{'size':(11,1)})
         self.setFocusPolicy(TTkK.ClickFocus | TTkK.TabFocus)
 
     @staticmethod
@@ -146,7 +146,7 @@ class TTkDate(TTkWidget):
             return _FieldSelected.MONTHS
         elif 8 <= x < 10:
             return _FieldSelected.DAYS
-        elif 11 <= x < 13:
+        elif 11 <= x < 12:
             return _FieldSelected.CAL
         return _FieldSelected.NONE
 
@@ -209,7 +209,7 @@ class TTkDate(TTkWidget):
     def mousePressEvent(self, evt:TTkMouseEvent) -> bool:
         self._state.clear()
         self._state.selected = TTkDate._getFieldFromPos(evt.x, evt.y)
-        if self._state.selected == _FieldSelected.CAL:
+        if self._state.selected == _FieldSelected.CAL or evt.key == TTkK.RightButton:
             self._showForm()
         self.update()
         return True
@@ -355,8 +355,8 @@ class TTkDate(TTkWidget):
         year   = TTkString(f"{self._date.year:>2}",  color=hoverColor if self._state.hovered == _FieldSelected.YEARS  else selectColor if self._state.selected == _FieldSelected.YEARS  else color)
         month  = TTkString(f"{self._date.month:02}", color=hoverColor if self._state.hovered == _FieldSelected.MONTHS else selectColor if self._state.selected == _FieldSelected.MONTHS else color)
         day    = TTkString(f"{self._date.day:02}",   color=hoverColor if self._state.hovered == _FieldSelected.DAYS   else selectColor if self._state.selected == _FieldSelected.DAYS   else color)
-        sep    = TTkString("/", colorSep)
-        cal    = TTkString(' 📆') if _FieldSelected.CAL in (self._state.hovered,self._state.selected) else TTkString(' 📅')
+        sep    = TTkString("-", colorSep)
+        cal    = TTkString(' ') if _FieldSelected.CAL in (self._state.hovered,self._state.selected) else TTkString(' ')
         txts = [year,sep,month,sep,day,cal]
         canvas.drawTTkString(pos=(0,0), text=TTkString().join(txts))
         # a = f"{hours:>5}"

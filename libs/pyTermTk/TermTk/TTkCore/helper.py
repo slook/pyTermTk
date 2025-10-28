@@ -168,13 +168,13 @@ class TTkHelper:
         return TTkHelper._mousePos
 
     @staticmethod
-    def paintAll() -> None:
+    def paintAll() -> int:
         '''
             _updateBuffer = list widgets that require a repaint [paintEvent]
             _updateWidget = list widgets that need to be pushed below
         '''
         if TTkHelper._rootCanvas is None:
-            return
+            return 0
 
         # Build a list of buffers to be repainted
         updateWidgetsBk = TTkHelper._updateWidget.copy()
@@ -213,19 +213,23 @@ class TTkHelper:
             pushToTerminal = True
             widget.paintChildCanvas()
 
+        total = 0
+
         if pushToTerminal:
             if TTkHelper._cursor:
                 TTkTerm.Cursor.hide()
             if TTkCfg.doubleBuffer:
-                TTkHelper._rootCanvas.pushToTerminalBuffered(0, 0, TTkGlbl.term_w, TTkGlbl.term_h)
+                total = TTkHelper._rootCanvas.pushToTerminalBuffered(0, 0, TTkGlbl.term_w, TTkGlbl.term_h)
             elif TTkCfg.doubleBufferNew:
-                TTkHelper._rootCanvas.pushToTerminalBufferedNew(0, 0, TTkGlbl.term_w, TTkGlbl.term_h)
+                total = TTkHelper._rootCanvas.pushToTerminalBufferedNew(0, 0, TTkGlbl.term_w, TTkGlbl.term_h)
             else:
-                TTkHelper._rootCanvas.pushToTerminal(0, 0, TTkGlbl.term_w, TTkGlbl.term_h)
+                total = TTkHelper._rootCanvas.pushToTerminal(0, 0, TTkGlbl.term_w, TTkGlbl.term_h)
             if TTkHelper._cursor:
                 x,y = TTkHelper._cursorPos
                 TTkTerm.push(TTkTerm.Cursor.moveTo(y+1,x+1))
                 TTkTerm.Cursor.show(TTkHelper._cursorType)
+
+        return total
 
     @staticmethod
     def rePaintAll() -> None:

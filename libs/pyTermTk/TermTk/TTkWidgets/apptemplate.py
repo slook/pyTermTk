@@ -648,7 +648,7 @@ class TTkAppTemplate(TTkContainer):
                 _fix:int) -> None:
             if _mb:
                 if _fix: # Fixed
-                    styleToMerge = {'default':{'glyphs':('├','─','┤','┄','┄','▶')}}
+                    styleToMerge = {'default':{'glyphs':('┖','─','┚','┄','┄','▶')}}
                 else:
                     styleToMerge = {'default':{'glyphs':('╞','═','╡','┄','┄','▶')}}
                 if not _adj:

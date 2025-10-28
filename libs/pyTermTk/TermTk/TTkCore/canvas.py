@@ -304,9 +304,9 @@ class TTkCanvas():
         if align == TTkK.CENTER_ALIGN:
             l = (w-2-text.termWidth())//2
         elif align == TTkK.LEFT_ALIGN:
-            l=1
+            l=2
         else:
-            l = w-3-text.termWidth()
+            l = w-4-text.termWidth()
         l+=x
         r = l+text.termWidth()+1
 
@@ -381,20 +381,20 @@ class TTkCanvas():
             for ix in vlines:
                 self._set(y+iy, x+ix, gg[0x0A], color)
 
-    def drawScroll(self, pos, size, slider, orientation, color=TTkColor.RST):
+    def drawScroll(self, pos, size, slider, orientation, color=TTkColor.RST, borderColor=TTkColor.RST):
         if not self._visible: return
         x,y = pos
         f,t = slider # slider from-to position
         if orientation == TTkK.HORIZONTAL:
             for i in range(x+1,x+size-1): # H line
-                self._set(y,x+i, TTkCfg.theme.hscroll[1], color)
+                self._set(y,x+i, TTkCfg.theme.hscroll[1], borderColor)
             for i in range(f,t): # Slider
                 self._set(y,x+i, TTkCfg.theme.hscroll[2], color)
             self._set(y,x+size-1, TTkCfg.theme.hscroll[3], color) # Right Arrow
             self._set(y,x, TTkCfg.theme.hscroll[0], color)        # Left Arrow
         else:
             for i in range(y+1,y+size-1): # V line
-                self._set(y+i,x, TTkCfg.theme.vscroll[1], color)
+                self._set(y+i,x, TTkCfg.theme.vscroll[1], borderColor)
             for i in range(f,t): # Slider
                 self._set(y+i,x, TTkCfg.theme.vscroll[2], color)
             self._set(y+size-1,x, TTkCfg.theme.vscroll[3], color) # Down Arrow
@@ -704,6 +704,7 @@ class TTkCanvas():
     def pushToTerminal(self, x, y, w, h):
         # TTkLog.debug("pushToTerminal")
         lastcolor = TTkColor.RST
+        total = 0
         for y in range(0, self._height):
             ansi = str(lastcolor)+TTkTerm.Cursor.moveTo(y+1,1)
             for x in range(0, self._width):
@@ -714,6 +715,8 @@ class TTkCanvas():
                     lastcolor = color
                 ansi+=ch
             TTkTerm.push(ansi)
+            total += len(ansi)
+        return total
 
     def cleanBuffers(self):
         if not self._visible: return
@@ -730,11 +733,13 @@ class TTkCanvas():
         lastcolor = TTkColor.RST
         empty = True
         ansi = ""
+        total = 0
         for y,(lda,ldb,lca,lcb) in enumerate(zip(data,oldData,colors,oldColors)):
             for x,(da,db,ca,cb) in enumerate(zip(lda,ldb,lca,lcb)):
                 if da==db and ca==cb:
                     if not empty:
                         TTkTerm.push(ansi)
+                        total += len(ansi)
                         empty=True
                     continue
                 ch = da
@@ -748,6 +753,7 @@ class TTkCanvas():
                 ansi+=ch
             if not empty:
                 TTkTerm.push(ansi)
+                total += len(ansi)
                 empty=True
         # Reset the color at the end
         TTkTerm.push(TTkColor.RST-lastcolor)
@@ -755,6 +761,7 @@ class TTkCanvas():
         # Switch the buffer
         self._bufferedData, self._bufferedColors = data, colors
         self._data,         self._colors         = oldData, oldColors
+        return total
 
     def pushToTerminalBufferedNew(self, x, y, w, h):
         # TTkLog.debug("pushToTerminal")
@@ -763,6 +770,7 @@ class TTkCanvas():
         lastcolor = TTkColor.RST
         empty = True
         ansi = ""
+        total = 0
         for y,(lda,ldb,lca,lcb) in enumerate(zip(data,oldData,colors,oldColors)):
             count = 0
             chBk = ''
@@ -771,6 +779,7 @@ class TTkCanvas():
                     if not empty:
                         ansi += "" if not chBk else chBk*count if count<=4 else f"{chBk}\033[{count-1}b"
                         TTkTerm.push(ansi)
+                        total += len(ansi)
                         count = 0
                         chBk = ''
                         empty=True
@@ -798,6 +807,7 @@ class TTkCanvas():
             if not empty:
                 ansi += "" if not chBk else chBk*count if count<=4 else f"{chBk}\033[{count-1}b"
                 TTkTerm.push(ansi)
+                total += len(ansi)
                 empty=True
         # Reset the color at the end
         TTkTerm.push(TTkColor.RST)
@@ -806,3 +816,4 @@ class TTkCanvas():
         # Switch the buffer
         self._bufferedData, self._bufferedColors = data, colors
         self._data,         self._colors         = oldData, oldColors
+        return total

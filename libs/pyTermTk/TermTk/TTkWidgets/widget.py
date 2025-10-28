@@ -255,6 +255,7 @@ class TTkWidget(TMouseEvents, TKeyEvents, TDragEvents):
         self._canvas = TTkCanvas(
                             width  = self._width  ,
                             height = self._height )
+        self._canvas._visible = visible
 
         # TODO: Check this,
         # The parent should always have a layout
@@ -376,6 +377,7 @@ class TTkWidget(TMouseEvents, TKeyEvents, TDragEvents):
         :type y: int
         '''
         if x==self._x and y==self._y: return
+        # TTkLog.debug(f"move: ({x=}, {y=}) {self._name}")
         self._x = x
         self._y = y
         self.update(repaint=False, updateLayout=False)
@@ -389,12 +391,12 @@ class TTkWidget(TMouseEvents, TKeyEvents, TDragEvents):
         :param height: the new height
         :type height: int
         '''
-        # TTkLog.debug(f"resize: {w,h} {self._name}")
-        if width!=self._width or height!=self._height:
-            self._width  = width
-            self._height = height
-            self._canvas.resize(self._width, self._height)
-            self.update(repaint=True, updateLayout=True)
+        if width==self._width and height==self._height: return
+        # TTkLog.debug(f"resize: ({width=}, {height=}) {self._name}")
+        self._width  = width
+        self._height = height
+        self._canvas.resize(self._width, self._height)
+        self.update(repaint=True, updateLayout=True)
         self.resizeEvent(width,height)
         self.sizeChanged.emit(width,height)
 
