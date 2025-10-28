@@ -413,8 +413,13 @@ class TTkWidget(TMouseEvents, TKeyEvents, TDragEvents):
         :param height: the new height
         :type height: int
         '''
-        self.resize(width, height)
-        self.move(x, y)
+        if x==self._x and y==self._y and width==self._width and height==self._height: return
+        self._x, self._y, self._width, self._height = x, y, width, height
+        self._canvas.resize(self._width, self._height)
+        self.update(repaint=True, updateLayout=True)
+        self.moveEvent(x,y)
+        self.resizeEvent(width,height)
+        self.sizeChanged.emit(width,height)
 
     def pasteEvent(self, txt:str) -> bool:
         '''

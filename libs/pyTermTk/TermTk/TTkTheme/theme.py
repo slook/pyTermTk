@@ -59,7 +59,7 @@ class TTkTheme():
     '''Default to **TTkColor.RST # Simil NerdTree purple**'''
     executableColor = TTkColor.fg("#AAFFAA") # Greenish
     '''Default to **TTkColor.fg("#AAFFAA") # Greenish**'''
-    linkNameColor   = TTkColor.fg("#00FFFF") # Cyanish
+    linkNameColor   = TTkColor.fg("#00FFFF") + TTkColor.ITALIC # Cyanish
     '''Default to **TTkColor.fg("#00FFFF") # Cyanish**'''
     folderNameColor = TTkColor.fg("#AAFFFF") # Yellowish
     '''Default to **TTkColor.fg("#AAFFFF") # Yellowish**'''

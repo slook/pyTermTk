@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__all__ = ['TTkTextPicker', 'TTkTextDialogPicker']
+__all__ = ['TTkTextPicker', 'TTkTextDialogPicker', 'TTkEmojiPicker']
 
 
 from TermTk.TTkCore.constant import TTkK
@@ -64,21 +64,23 @@ emoji = {
 }
 
 class _emojiPickerView(TTkAbstractScrollView):
-    __slots__ = ('_btns', '_labels', 'emojiClicked')
+    __slots__ = ('_btns', '_labels', 'emojiPicked')
     def __init__(self, *args, **kwargs) -> None:
-        self.emojiClicked = pyTTkSignal(str)
+        self.emojiPicked = pyTTkSignal(str)
         super().__init__(*args, **kwargs)
         self.viewChanged.connect(self._viewChangedHandler)
         self._btns = {}
         self._labels = {}
+
+        def _cbEmoji(ch):
+            def _ccb(): self.emojiPicked.emit(ch)
+            return _ccb
+
         for t in emoji:
             self._btns[t]=[]
             self._labels[t] = TTkLabel(parent=self, text=t,size=(len(t),1))
             for e in emoji[t]:
                 self._btns[t].append(btn := TTkButton(parent=self, text=e,size=(4,3),border=True))
-                def _cbEmoji(ch):
-                    def _ccb(): self.emojiClicked.emit(ch)
-                    return _ccb
                 btn.clicked.connect(_cbEmoji(e))
 
     def resizeEvent(self, w, h):
@@ -122,12 +124,16 @@ class _emojiPickerArea(TTkAbstractScrollArea):
         self.setFocusPolicy(TTkK.ClickFocus)
         self.setViewport(self._areaView)
 
-class _emojiPicker(TTkResizableFrame):
-    __slots__ = ('emojiClicked')
-    def __init__(self, *args, **kwargs) -> None:
+class TTkEmojiPicker(TTkResizableFrame):
+    '''TTkEmojiPicker
+    .. note:: This is an early prototype
+    '''
+    __slots__ = ('emojiPicked')
+    def __init__(self, *args, keepOpen=False, **kwargs) -> None:
         super().__init__(*args, **kwargs|{'layout':TTkGridLayout()})
-        self.layout().addWidget(epa := _emojiPickerArea())
-        self.emojiClicked = epa.viewport().emojiClicked
+        self.layout().addWidget(epa := _emojiPickerArea(parent=self))
+        self.emojiPicked = epa.viewport().emojiPicked
+        if not keepOpen: self.emojiPicked.connect(self.close)
 
 class TTkTextDialogPicker(TTkWindow):
     __slots__ = ('_textEdit', '_autoSize')
@@ -159,10 +165,10 @@ class TTkTextDialogPicker(TTkWindow):
 
         @pyTTkSlot()
         def _showEmojiPicker():
-            ep = _emojiPicker(size=(40,10))
+            ep = TTkEmojiPicker(size=(40,10))
             def _addEmoji(e):
                 self._textEdit.textCursor().insertText(e, moveCursor=True)
-            ep.emojiClicked.connect(_addEmoji)
+            ep.emojiPicked.connect(_addEmoji)
             TTkHelper.overlay(btn_emoji, ep, 0, 0)
 
         btn_emoji.clicked.connect(_showEmojiPicker)

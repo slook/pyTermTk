@@ -27,16 +27,20 @@ from enum import IntEnum, Flag
 from TermTk.TTkCore.cfg import TTkCfg
 from TermTk.TTkCore.signal import pyTTkSignal,pyTTkSlot
 from TermTk.TTkCore.color import TTkColor
+from TermTk.TTkCore.constant import TTkConstant
 from TermTk.TTkCore.util import TTkUtil
 from TermTk.TTkCore.string import TTkString
 from TermTk.TTkLayouts.layout import TTkLayout
 from TermTk.TTkLayouts.gridlayout import TTkGridLayout
 from TermTk.TTkLayouts.boxlayout import TTkHBoxLayout
+from TermTk.TTkLayouts.boxlayout import TTkVBoxLayout
 from TermTk.TTkWidgets.widget import TTkWidget
 from TermTk.TTkWidgets.window import TTkWindow
 from TermTk.TTkWidgets.image import TTkImage
 from TermTk.TTkWidgets.label import TTkLabel
 from TermTk.TTkWidgets.button import TTkButton
+from TermTk.TTkWidgets.texedit import TTkTextEdit
+
 
 class TTkMessageBox(TTkWindow):
     class Icon(IntEnum):
@@ -150,8 +154,8 @@ class TTkMessageBox(TTkWindow):
         self.buttonSelected = pyTTkSignal(TTkMessageBox.StandardButton)
         super().__init__(**kwargs|{'layout':TTkGridLayout()})
         self._icon = icon
-        self._text = TTkString(text)
-        self._detailedText = TTkString(detailedText)
+        self._text = self._widLabel = None
+        self._detailedText = self._widDetailedText = None
         self._standardButtons = standardButtons
         self._defaultButton = defaultButton
 
@@ -161,17 +165,24 @@ class TTkMessageBox(TTkWindow):
         if compressedData:
             data = TTkUtil.base64_deflate_2_obj(compressedData)
             self._widImage.setData(data)
-            self._widImage.setMinimumSize(16,8)
+            self._widImage.setMinimumSize(18,8)
+            self._widImage.setMaximumWidth(18)
 
-        self.layout().addItem(TTkLayout(),0,1,1,3)
-        self.layout().addItem(TTkLayout(),2,1,1,3)
+        #self.layout().addItem(TTkLayout(),0,2,1,1)  # spacer
+        #self.layout().addItem(TTkLayout(),2,1,1,1)  # detailedText
+        #self.layout().addItem(TTkLayout(),3,1,1,3)  # checkbox
 
-        self._widLabel = TTkLabel(text=self._text)
-        self._widLabel.setMinimumSize(*self._widLabel.size())
-        self.layout().addWidget(self._widLabel,1,2)
+        self.setText(text)
+
+        self._widContentLayout = TTkVBoxLayout()
+        self.layout().addItem(self._widContentLayout,2,1,1,4)
+
+        self.setDetailedText(detailedText)
+
+        self._widContentLayout.addItem(TTkLayout())  # minHeight=1))  # , maxHeight=1))  # ,3,1,1,3)  # spacer
 
         self._widBtnLayout = TTkHBoxLayout()
-        self.layout().addItem(self._widBtnLayout,3,1,1,3)
+        self.layout().addItem(self._widBtnLayout,3,1,1,4)
 
         def _genClickedSlot(sb):
             @pyTTkSlot()
@@ -239,7 +250,30 @@ class TTkMessageBox(TTkWindow):
         w,h = self.layout().minimumSize()
         self.resize(w+2,h+4)
 
-    # def setText(self, text):pass
-    # def setDetailedText(self, text):
+    def setText(self, text:TTkString=''):
+        self._text = text
+        if not text:
+            self.layout().removeWidget(self._widLabel)
+            self._widLabel = None
+            return
+        self._widLabel = TTkLabel(text=text)
+        self._widLabel.setMinimumSize(*self._widLabel.size())
+        self._widLabel.setMaximumSize(*self._widLabel.size())
+        self.layout().addItem(TTkLayout(minHeight=2, maxHeight=2),0,2)  # spacer
+        self.layout().addWidget(self._widLabel,1,2,1,2)
+
+    def setDetailedText(self, text:TTkString=''):
+        self._detailedText = text
+        if not text:
+            self._widContentLayout.removeWidget(self._widDetailedText)
+            self._widDetailedText = None
+            return
+        self._widDetailedText = TTkTextEdit(readOnly=True, minWidth=40, minHeight=4)
+        self._widDetailedText.setText(text)
+        self._widDetailedText.setLineWrapMode(TTkConstant.WidgetWidth)
+        self._widDetailedText.setWordWrapMode(TTkConstant.WordWrap)
+        self._widContentLayout.addItem(TTkLayout(maxHeight=1))  # ,1,1,1,3)  # spacer
+        self._widContentLayout.addWidget(self._widDetailedText)  # ,2,1,1,3)
+
     # def setStandardButtons(self, buttons):pass
     # def setDefaultButton(self, button):pass

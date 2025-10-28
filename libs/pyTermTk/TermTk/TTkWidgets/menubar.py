@@ -36,11 +36,34 @@ from TermTk.TTkWidgets.menu import TTkMenuButton
 class TTkMenuBarButton(TTkMenuButton):
     classStyle = TTkMenuButton.classStyle | {
                 'default': TTkMenuButton.classStyle['default'] |
-                           {'borderColor':TTkColor.RST, 'shortcutColor': TTkColor.fg("#dddddd") + TTkColor.UNDERLINE,
-                            'glyphs':('├','─','┤','┄','┄','▶')},
+                           {'borderColor':TTkColor.RST,
+                            'shortcutColor': TTkColor.fg("#dddddd") + TTkColor.UNDERLINE,
+                            #'glyphs':('┠','─','┨','┄','┄','▶')},
+                            #'glyphs':('┠','─','┨','┄','┄','▶')},
+                            #'glyphs':('┎','─','┒','┄','┄','▶')},
+                            'glyphs':('┖','─','┚','┄','┄','▶')},
+                            #'glyphs':('╰','─','╯','┄','┄','▶')},
+
+                'hover': TTkMenuButton.classStyle['hover'] |
+                           {#'borderColor':TTkColor.RST,
+                            #'glyphs':('┠','─','┨','┄','┄','▶')},
+                            'glyphs':('┎','─','┒','┄','┄','▶')},
+                            #'glyphs':('┖','─','┚','┄','┄','▶')},
+                            #'glyphs':('╰','─','╯','┄','┄','▶')},
+
+                'highlighted': TTkMenuButton.classStyle['highlighted'] |
+                           {'color': TTkColor.BOLD,
+                            #'glyphs':('┠','─','┨','┄','┄','▶')},
+                            'glyphs':('┎','─','┒','┄','┄','▶')},
+                            #'glyphs':('┖','─','┚','┄','┄','▶')},
+                            #'glyphs':('╰','─','╯','┄','┄','▶')},
+
                 'clicked': TTkMenuButton.classStyle['clicked'] |
-                           {'color': TTkColor.fg("#ffff88")},
+                           {'color': TTkColor.fg('#FFAA40') + TTkColor.bg('#0000FF') + TTkColor.BOLD,
+                            'glyphs':('┠','─','┨','┄','┄','▶')},
+
             }
+
 
     __slots__=('_shortcut')
     def __init__(self, *,
@@ -55,14 +78,9 @@ class TTkMenuBarButton(TTkMenuButton):
 
     def setCheckable(self, ch):
         txtlen = self.text().termWidth()
-        if ch:
-            self.resize(txtlen+4,1)
-            self.setMinimumSize(txtlen+4,1)
-            self.setMaximumSize(txtlen+4,1)
-        else:
-            self.resize(txtlen+2,1)
-            self.setMinimumSize(txtlen+2,1)
-            self.setMaximumSize(txtlen+2,1)
+        self.resize(txtlen+4,1)
+        self.setMinimumSize(txtlen+4,1)
+        self.setMaximumSize(txtlen+4,1)
         return super().setCheckable(ch)
 
     def paintEvent(self, canvas):
@@ -72,13 +90,13 @@ class TTkMenuBarButton(TTkMenuButton):
         textColor   = style['color']
         scColor     = style['shortcutColor']
         if self._checkable:
-            text = ('▣ ' if self._checked else '□ ') + self.text()
+            text = ('▣ ' if self._checked else '□ ') + self.text()  # + ' '
         else:
             text = self.text()
 
-        canvas.drawText(pos=(0,0), color=borderColor ,text=glyphs[2])
-        canvas.drawText(pos=(1+text.termWidth(),0), color=borderColor ,text=glyphs[0])
-        canvas.drawText(pos=(1,0), color=textColor ,text=text)
+        canvas.drawText(pos=(0,0), color=borderColor ,text=glyphs[1]+glyphs[2])
+        canvas.drawText(pos=(2+text.termWidth(),0), color=borderColor ,text=glyphs[0]+glyphs[1])
+        canvas.drawText(pos=(2,0), color=textColor ,text=text)
 
         for sc in self._shortcut:
             canvas.drawChar(pos=(0,sc+1), char=text.charAt(sc), color=scColor)

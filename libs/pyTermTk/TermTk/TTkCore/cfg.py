@@ -36,11 +36,11 @@ class _TTkCfg:
 
     color_depth: int = TTkK.DEP_24
 
-    maxFps:int = 65
+    maxFps:int = 25
     doubleBuffer:bool = True
     doubleBufferNew:bool = False
 
-    scrollDelta:int = 5
+    scrollDelta:int = 3
 
     _theme:Optional[TTkTheme] = None
     @property

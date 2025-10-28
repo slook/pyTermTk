@@ -22,7 +22,7 @@
 
 __all__ = ['TTkTreeWidget']
 
-from typing import List,Tuple,Optional
+from typing import Any, List, Tuple, Optional
 
 from TermTk.TTkCore.cfg import TTkCfg
 from TermTk.TTkCore.log import TTkLog
@@ -229,7 +229,7 @@ class TTkTreeWidget(TTkAbstractScrollView):
                   '_selectionMode',
                   '_hoverItem',
                   '_selected', '_separatorSelected',
-                  '_sortColumn', '_sortOrder', '_sortingEnabled',
+                  '_sortColumn', '_sortOrder', '_sortKey', '_sortingEnabled',
                   '_dndMode',
                   # Signals
                   '_itemChanged', '_itemClicked', '_itemDoubleClicked', '_itemExpanded', '_itemCollapsed', '_itemActivated'
@@ -254,7 +254,7 @@ class TTkTreeWidget(TTkAbstractScrollView):
         '''
         :param header: define the header labels of each column, defaults to []
         :type header: List[:py:class:`TTkString`], optional
-        :param sortingEnabled: enable the column sorting, defaults to False
+        :param sortingEnabled: enable the column sorting, defaults to True
         :type sortingEnabled: bool, optional
         :param selectionMode: This property controls whether the user can select one or many items, defaults to :py:class:`TTkK.SelectionMode.SingleSelection`.
         :type selectionMode: :py:class:`TTkK.SelectionMode`, optional
@@ -277,6 +277,7 @@ class TTkTreeWidget(TTkAbstractScrollView):
         self._sortColumn = -1
         self._sortOrder = TTkK.AscendingOrder
         self._rootItem = _RootWidgetItem()
+        self._sortKey = self.sortKey
         super().__init__(**kwargs)
         self.setHeaderLabels(header)
         self.setMinimumHeight(1)
@@ -322,7 +323,7 @@ class TTkTreeWidget(TTkAbstractScrollView):
             self._rootItem.dataChanged.disconnect(self._refreshCache)
         self._rootItem = _RootWidgetItem()
         self._rootItem.dataChanged.connect(self._refreshCache)
-        self.sortItems(self._sortColumn, self._sortOrder)
+        #self.sortItems(self._sortColumn, self._sortOrder, key=self._sortKey)
         self.viewChanged.emit()
         self.update()
 
@@ -478,9 +479,24 @@ class TTkTreeWidget(TTkAbstractScrollView):
         self._sortColumn = col
         self._sortOrder = order
         self._rootItem.dataChanged.disconnect(self._refreshCache)
-        self._rootItem.sortChildren(col, order)
+        self._rootItem.sortChildren(col, order, key=self.sortKey)
         self._rootItem.dataChanged.connect(self._refreshCache)
         self._refreshCache()
+
+    def sortKey(self, item:TTkTreeWidgetItem) -> Any:
+        '''
+        Returns data from the current sort column to be used internally for the sorting.
+
+        Override this to provide an alternative key value (or tuple of values) for custom
+        sorting methods such as in the :py:class:`TTkFileTreeWidget` where folders and
+        files are sorted using natural ordering patterns based on the raw data of items.
+
+        :param item: the item being sorted as called internally by the sort iterator
+        :type item: TTkTreeWidgetItem
+
+        :rtype: Any
+        '''
+        return item.sortData(self._sortColumn)
 
     def columnWidth(self, column:int) -> int:
         '''
