@@ -23,7 +23,7 @@
 __all__ = ['TTkSignalDriver','TTkInputDriver']
 
 import sys, os, re
-import signal
+import atexit, signal
 from select import select
 
 try: import fcntl, termios, tty
@@ -51,12 +51,23 @@ class TTkInputDriver():
 
     def read(self):
         rm = re.compile('(\033?[^\033]+)')
-        while self._readPipe[0] not in (_rlist := select( [sys.stdin, self._readPipe[0]], [], [] )[0]):
+        while True:
+            _rlist = select([sys.stdin, self._readPipe[0]], [], [])[0]
+
+            if self._readPipe[0] in _rlist:
+                break  # #
+
+            if sys.stdin not in _rlist:
+                continue  # spurious wakeup (shouldn't happen without timeout, but defensive)
+
             # Read all the full input
             _fl = fcntl.fcntl(sys.stdin, fcntl.F_GETFL)
             fcntl.fcntl(sys.stdin, fcntl.F_SETFL, _fl | os.O_NONBLOCK) # Set the input as NONBLOCK to read the full sequence
             stdinRead = sys.stdin.read()
             fcntl.fcntl(sys.stdin, fcntl.F_SETFL, _fl)
+
+            if not stdinRead:
+                continue  # break  # EOF — terminal closed stdin
 
             # Split all the ansi sequences
             # or yield any separate input char
@@ -71,7 +82,6 @@ class TTkInputDriver():
                         yield ch
 
 
-
 class TTkSignalDriver():
     sigStop = pyTTkSignal()
     sigCont = pyTTkSignal()
@@ -84,6 +94,7 @@ class TTkSignalDriver():
         signal.signal(signal.SIGCONT, TTkSignalDriver._SIGCONT) # Resume
         signal.signal(signal.SIGINT,  TTkSignalDriver._SIGINT)  # Ctrl-C
 
+    @atexit.register
     def exit():
         signal.signal(signal.SIGINT,  signal.SIG_DFL)
 

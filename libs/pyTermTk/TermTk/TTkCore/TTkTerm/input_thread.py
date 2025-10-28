@@ -86,22 +86,23 @@ class TTkInput:
 
     @staticmethod
     def start() -> None:
-        TTkInput._inputThread.start()
-        while inq := TTkInput._inputQueue.get():
-            kevt,mevt,paste = inq
 
-            # Try to filter out the queued moved mouse events
-            while (not kevt and
-                   not paste and
-                   mevt and mevt.evt == TTkK.Drag and
-                   not TTkInput._inputQueue.empty() ):
-                mevtOld = mevt
-                kevt, mevt, paste = TTkInput._inputQueue.get()
-                if (kevt  or
-                    paste or
-                    mevt and mevt.evt != TTkK.Drag):
-                    TTkInput.inputEvent.emit(kevt, mevtOld)
-                    break
+        TTkInput._inputThread.start()
+        _pendingDrag = None
+
+        while inq := TTkInput._inputQueue.get():
+            kevt, mevt, paste = inq
+
+            if not kevt and not paste and mevt and mevt.evt == TTkK.Drag:
+                if not TTkInput._inputQueue.empty():
+                    _pendingDrag = mevt
+                    continue
+
+                _pendingDrag = None  # queue empty: discard stale pending, emit current
+
+            elif _pendingDrag is not None:
+                TTkInput.inputEvent.emit(None, _pendingDrag)
+                _pendingDrag = None
 
             if kevt or mevt:
                 TTkInput.inputEvent.emit(kevt, mevt)

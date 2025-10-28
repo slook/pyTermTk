@@ -255,6 +255,7 @@ class TTkWidget(TMouseEvents, TKeyEvents, TDragEvents):
         self._canvas = TTkCanvas(
                             width  = self._width  ,
                             height = self._height )
+        self._canvas._visible = visible
 
         # TODO: Check this,
         # The parent should always have a layout
@@ -274,17 +275,17 @@ class TTkWidget(TMouseEvents, TKeyEvents, TDragEvents):
 
         .. caution:: This is an internal method, do not call it directly
         '''
-        # TTkLog.debug("DESTRUCTOR")
+        TTkLog.debug(f"DESTRUCTOR {self.name()}")
 
         # clean all the signals, slots
         #for an in dir(self):
         #    att = self.__getattribute__(an)
         #    # TODO: TBD, I need to find the time to do this
 
-        parent = self._parent
-        if parent is not None and hasattr(parent, 'layout') and parent.layout():
-            parent.layout().removeWidget(self)
-            self._parent = None
+        #parent = self._parent
+        #if parent is not None and hasattr(parent, 'layout') and parent.layout():
+        #    parent.layout().removeWidget(self)
+        #    self._parent = None
 
     def name(self) -> str:
         '''
@@ -428,6 +429,7 @@ class TTkWidget(TMouseEvents, TKeyEvents, TDragEvents):
         :type y: int
         '''
         if x==self._x and y==self._y: return
+        # TTkLog.debug(f"move: ({x=}, {y=}) {self._name}")
         self._x = x
         self._y = y
         self.update(repaint=False, updateLayout=False)
@@ -441,12 +443,12 @@ class TTkWidget(TMouseEvents, TKeyEvents, TDragEvents):
         :param height: the new height
         :type height: int
         '''
-        # TTkLog.debug(f"resize: {w,h} {self._name}")
-        if width!=self._width or height!=self._height:
-            self._width  = width
-            self._height = height
-            self._canvas.resize(self._width, self._height)
-            self.update(repaint=True, updateLayout=True)
+        if width==self._width and height==self._height: return
+        # TTkLog.debug(f"resize: ({width=}, {height=}) {self._name}")
+        self._width  = width
+        self._height = height
+        self._canvas.resize(self._width, self._height)
+        self.update(repaint=True, updateLayout=True)
         self.resizeEvent(width,height)
         self.sizeChanged.emit(width,height)
 
@@ -596,6 +598,7 @@ class TTkWidget(TMouseEvents, TKeyEvents, TDragEvents):
             self._processStyleEvent(TTkWidget._S_PRESSED)
             if w.focusPolicy() & TTkK.ClickFocus == TTkK.ClickFocus:
                 w.setFocus()
+                TTkHelper.removeOverlayChild(w)
                 w.raiseWidget()
             if evt.tap == 2 and self.mouseDoubleClickEvent(evt):
                 return True
@@ -916,6 +919,12 @@ class TTkWidget(TMouseEvents, TKeyEvents, TDragEvents):
         self.hide()
         self.closed.emit(self)
 
+        for signal in (self.focusChanged, self.sizeChanged, self.currentStyleChanged, self.closed):
+            signal.clear()
+            signal = None
+
+        self.widgetItem = None
+
     @pyTTkSlot(bool)
     def setVisible(self, visible: bool) -> None:
         '''
@@ -987,14 +996,16 @@ class TTkWidget(TMouseEvents, TKeyEvents, TDragEvents):
         .. note:: This is an internal method used to track which widget should receive a mouse release event
         '''
         if not (_p:=self._parent):
-             return
+            return
         _p._setPendingMouseReleaseWidget(self)
 
     @pyTTkSlot()
     def setFocus(self) -> None:
         '''Focus the widget'''
         if not (_p:=self._parent):
-             return
+            return
+        # if not TTkHelper.checkModalOverlay(_p):
+        #     return
         if (_old_fw:=_p._getFocusWidget()) is self:
             return
         if _old_fw:
@@ -1004,7 +1015,7 @@ class TTkWidget(TMouseEvents, TKeyEvents, TDragEvents):
         self.focusInEvent()
         self._processStyleEvent(TTkWidget._S_DEFAULT)
         self._pushWidgetCursor()
-        TTkHelper.removeOverlayChild(self)
+        # TTkHelper.removeOverlayChild(self)
         self.update()
 
     def clearFocus(self) -> None:

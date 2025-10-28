@@ -138,6 +138,7 @@ class _TTkTreeChildren(TTkAbstractItemModel):
         child._parent = parent
         child._sortOrder = parent._sortOrder
         child._sortColumn = parent._sortColumn
+        child._sortKey = parent._sortKey
         child.dataChanged.connect(self.emitDataChanged)
         child._sizeChanged.connect(self._childrenSizeChangedHandler)
 
@@ -209,13 +210,14 @@ class _TTkTreeChildren(TTkAbstractItemModel):
     def sort(self):
         if self._parent._sortColumn == -1: return
         self._children = sorted(
-                self._children,
-                key = lambda _i : _i.data(self._parent._sortColumn),
-                reverse = self._parent._sortOrder == TTkK.DescendingOrder)
+            self._children,
+            key=self._parent._sortKey,
+            reverse=self._parent._sortOrder == TTkK.DescendingOrder
+        )
         for c in self._children:
             c.dataChanged.disconnect(self.emitDataChanged)
             c._sizeChanged.disconnect(self._childrenSizeChangedHandler)
-            c.sortChildren(self._parent._sortColumn, self._parent._sortOrder)
+            c.sortChildren(self._parent._sortColumn, self._parent._sortOrder, key=self._parent._sortKey)
             c._sizeChanged.connect(self._childrenSizeChangedHandler)
             c.dataChanged.connect(self.emitDataChanged)
         self.clearBuffer()
@@ -225,6 +227,19 @@ class _TTkTreeChildren(TTkAbstractItemModel):
         if not self._total_size:
             self._total_size = sum(_c.size() for _c in self._children)
         return self._total_size
+
+    def clear(self):
+        for child in self._children:
+            child._sizeChanged.clear()
+            child.clear()
+        self._childrenSizeChanged.clear()
+        self.takeChildren()
+        self.clearBuffer()
+        super().clear()
+        # self._parent = None
+        # super().close()
+        del self
+
 
 class TTkTreeWidgetItem(TTkAbstractItemModel):
     '''
@@ -256,7 +271,7 @@ class TTkTreeWidgetItem(TTkAbstractItemModel):
         '_parent', '_data', '_widgets', '_height', '_alignment',
         '_children', '_expanded', '_hidden',
         '_childIndicatorPolicy', '_icon', '_defaultIcon',
-        '_sortColumn', '_sortOrder', '_hasWidgets',
+        '_sortColumn', '_sortOrder', '_sortKey', '_hasWidgets',
         '_buffer', '_level',
         # Signals
         # 'refreshData'
@@ -267,6 +282,7 @@ class TTkTreeWidgetItem(TTkAbstractItemModel):
     _icon:List[TTkString]
     _alignment:List[TTkK.Alignment]
     _sortOrder:TTkK.SortOrder
+    _sortKey:Optional[Any]
     _buffer:List[Tuple[int,int,TTkTreeWidgetItem]]
     _children:Optional[_TTkTreeChildren]
     _childIndicatorPolicy:TTkK.ChildIndicatorPolicy
@@ -296,6 +312,7 @@ class TTkTreeWidgetItem(TTkAbstractItemModel):
         self._hidden = hidden
         self._sortColumn = -1
         self._sortOrder = TTkK.AscendingOrder
+        self._sortKey = None
 
         super().__init__(**kwargs)
         self._data, self._widgets = self._processDataInput(data)
@@ -525,12 +542,16 @@ class TTkTreeWidgetItem(TTkAbstractItemModel):
         if self._children:
             self._children.collapseAll()
 
-    def sortChildren(self, col:int, order:TTkK.SortOrder) -> None:
+    def sortChildren(self, col:int, order:TTkK.SortOrder, key=None) -> None:
         self._sortColumn = col
         self._sortOrder = order
+        self._sortKey = key
         if not self._children:
             return
         self._children.sort()
+
+    def sortData(self, col:int) -> Any:
+        return str(self._data[col])
 
     @pyTTkSlot()
     def emitDataChanged(self) -> None:
@@ -556,3 +577,15 @@ class TTkTreeWidgetItem(TTkAbstractItemModel):
              self._children ):
             return self._height + self._children.size()
         return self._height
+
+    def clear(self):
+        if not self._children:
+            return
+        self._children.dataChanged.disconnect(self.emitDataChanged)
+        self._children._childrenSizeChanged.disconnect(self._sizeChangedHandler)
+        self._children.clear()
+        self._buffer.clear()
+        super().clear()
+        # del self._children
+        # del self._buffer
+        # super().close()

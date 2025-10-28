@@ -121,7 +121,7 @@ class TTkToolTip():
         # The tooltip system automatically handles display timing and positioning
     '''
 
-    _toolTipTime:int = 1
+    _toolTipTime:int = 0.5
     '''Timeout in seconds'''
 
     toolTipTimer:TTkTimer = TTkTimer(name='ToolTip')

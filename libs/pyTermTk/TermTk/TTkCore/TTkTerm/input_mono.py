@@ -23,12 +23,13 @@
 __all__ = ['TTkInput']
 
 import re
-from time import time
+from time import monotonic, sleep
 
 import platform
 
 from ..drivers import TTkInputDriver
 
+from TermTk.TTkCore.cfg import TTkCfg
 from TermTk.TTkCore.log import TTkLog
 from TermTk.TTkCore.constant import TTkK
 from TermTk.TTkCore.signal import pyTTkSignal
@@ -40,6 +41,7 @@ from TermTk.TTkCore.TTkTerm.inputmouse import TTkMouseEvent
 class TTkInput:
     inputEvent = pyTTkSignal(TTkKeyEvent, TTkMouseEvent)
     pasteEvent = pyTTkSignal(str)
+    exceptionRaised = pyTTkSignal(Exception)
     _pasteBuffer = ""
     _bracketedPaste = False
     _readInput = None
@@ -77,23 +79,70 @@ class TTkInput:
 
     @staticmethod
     def start() -> None:
-        for stdinRead in TTkInput._readInput.read():
-            TTkInput.key_process(stdinRead)
+        try:
+            for stdinRead in TTkInput._readInput.read():
+                TTkInput.key_process(stdinRead)
+        except Exception as e:
+            TTkInput.exceptionRaised.emit(e)
         TTkLog.debug("Close TTkInput")
+
+    @staticmethod
+    def start() -> None:
+
+        drag_pos = None
+        drag_time = 0
+        drag_mevt = None
+
+        for stdinRead in TTkInput._readInput.read():
+            kevt, mevt, paste = TTkInput.key_process(stdinRead)
+
+            if mevt and mevt.evt == TTkK.Press:
+                drag_pos = (mevt.x, mevt.y)
+                drag_time = 0
+            elif mevt and mevt.evt == TTkK.Drag:
+                if not drag_pos or (mevt.x, mevt.y) == (drag_pos[0], drag_pos[1]):
+                    # sleep(1 / TTkCfg.maxFps)
+                    continue
+                drag_pos = (mevt.x, mevt.y)
+                drag_mevt = mevt
+                t = monotonic()
+                if t - drag_time < (2 / TTkCfg.maxFps):
+                    # sleep(1 / TTkCfg.maxFps)
+                    continue
+                drag_time = t
+                kevt = mevt = None
+            else:
+                drag_pos = None
+                drag_time = 0
+
+            if drag_mevt is not None:
+                TTkInput.inputEvent.emit(None, drag_mevt)
+                drag_mevt = None
+            if kevt or mevt:
+                TTkInput.inputEvent.emit(kevt, mevt)
+            if paste:
+                TTkInput.pasteEvent.emit(paste)
+
+        TTkLog.debug("Close TTkInput")
+
+    @staticmethod
+    def _handleBracketedPaste(stdinRead:str):
+        if stdinRead.endswith("\033[201~"):
+            TTkInput._pasteBuffer += stdinRead[:-6]
+            TTkInput._bracketedPaste = False
+            # due to the CRNL methos (don't ask me why) the terminal
+            # is substituting all the \n with \r
+            _paste = TTkInput._pasteBuffer.replace('\r','\n')
+            TTkInput._pasteBuffer = ""
+            return None, None, _paste
+        else:
+            TTkInput._pasteBuffer += stdinRead
+        return None, None, None
 
     @staticmethod
     def key_process(stdinRead:str) -> None:
         if TTkInput._bracketedPaste:
-            if stdinRead.endswith("\033[201~"):
-                TTkInput._pasteBuffer += stdinRead[:-6]
-                TTkInput._bracketedPaste = False
-                # due to the CRNL methos (don't ask me why) the terminal
-                # is substituting all the \n with \r
-                TTkInput.pasteEvent.emit(TTkInput._pasteBuffer.replace('\r','\n'))
-                TTkInput._pasteBuffer = ""
-            else:
-                TTkInput._pasteBuffer += stdinRead
-            return
+            return TTkInput._handleBracketedPaste(stdinRead)
 
         mevt,kevt = None, None
 
@@ -118,7 +167,7 @@ class TTkInput:
 
             def _checkTap(lastTime, tap):
                 if state=="M":
-                    t = time()
+                    t = monotonic()
                     if (t-lastTime) < 0.4:
                         return t, tap+1
                     else:
@@ -171,13 +220,11 @@ class TTkInput:
 
             mevt = TTkMouseEvent(x, y, key, evt, mod, tap, m.group(0).replace("\033", "<ESC>"))
         if kevt or mevt:
-            TTkInput.inputEvent.emit(kevt, mevt)
-            return
+            return kevt, mevt, None
 
         if stdinRead.startswith("\033[200~"):
-            TTkInput._pasteBuffer = stdinRead[6:]
             TTkInput._bracketedPaste = True
-            return
+            return TTkInput._handleBracketedPaste(stdinRead[6:])
 
         hex = [f"0x{ord(x):02x}" for x in stdinRead]
         TTkLog.error("UNHANDLED: "+stdinRead.replace("\033","<ESC>") + " - "+",".join(hex))

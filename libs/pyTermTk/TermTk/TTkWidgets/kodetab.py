@@ -40,7 +40,7 @@ from TermTk.TTkGui.drag import TTkDnDEvent
 _splitter_NERD_1_style = {
         'default':{
             'glyphs' : {
-                TTkK.VERTICAL   : ('▃','▃','▃'),
+                TTkK.VERTICAL   : ('╍','═','╍'),
                 TTkK.HORIZONTAL : ('┇','║','┇') },
             'color': TTkColor.fgbg("#dddddd","#222222"),
             'borderColor': TTkColor.fg("#8888aa") },

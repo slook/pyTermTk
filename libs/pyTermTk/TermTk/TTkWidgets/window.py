@@ -24,6 +24,7 @@ __all__ = ['TTkWindow']
 
 from TermTk.TTkCore.constant import TTkK
 from TermTk.TTkCore.color import TTkColor
+from TermTk.TTkCore.TTkTerm.inputkey import TTkKeyEvent
 from TermTk.TTkCore.TTkTerm.inputmouse import TTkMouseEvent
 
 from TermTk.TTkLayouts import TTkGridLayout, TTkLayout
@@ -162,6 +163,12 @@ class TTkWindow(TTkResizableFrame):
         self._btnMin.setVisible(   bool(flag & TTkK.WindowFlag.WindowMinimizeButtonHint))
         self._btnReduce.setVisible(bool(flag & TTkK.WindowFlag.WindowReduceButtonHint))
         self._winTopLayout.update()
+
+    def keyEvent(self, evt:TTkKeyEvent) -> bool:
+        if self._btnClose.isVisible() and evt.key == TTkK.Key_Escape:
+            self.close()
+            return True
+        return super().keyEvent(evt)
 
     def resizeEvent(self, w, h):
         self._maxBk = None

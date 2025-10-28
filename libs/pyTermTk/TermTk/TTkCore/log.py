@@ -73,16 +73,18 @@ class TTkLog:
                     format='%(levelname)s:(%(threadName)-9s) %(message)s',)
         TTkLog.installMessageHandler(TTkLog._logging_message_handler)
 
-
     @staticmethod
     def _process_msg(mode: int, msg: str):
+        if not TTkLog._messageHandler:
+            return
+        curframe = inspect.currentframe()
+        calframe = inspect.getouterframes(curframe, 1)
+        if len(calframe) <= 2:
+            return
+        ctx = _TTkContext(calframe[2])
         for cb in TTkLog._messageHandler:
-            curframe = inspect.currentframe()
-            calframe = inspect.getouterframes(curframe,1)
-            if len(calframe) > 2:
-                ctx = _TTkContext(calframe[2])
-                for txt in str(msg).split('\n'):
-                    cb(mode, ctx, txt)
+            for txt in str(msg).split('\n'):
+                cb(mode, ctx, txt)
 
     @staticmethod
     def debug(msg):

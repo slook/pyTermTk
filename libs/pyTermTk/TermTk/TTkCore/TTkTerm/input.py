@@ -22,5 +22,5 @@
 
 __all__ = ['TTkInput']
 
-# from .input_mono import TTkInput
-from .input_thread import TTkInput
+from .input_mono import TTkInput
+# from .input_thread import TTkInput

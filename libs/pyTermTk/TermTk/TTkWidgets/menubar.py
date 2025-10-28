@@ -30,7 +30,6 @@ from TermTk.TTkCore.color import TTkColor
 # from TermTk.TTkCore.log import TTkLog
 from TermTk.TTkCore.signal import pyTTkSignal, pyTTkSlot
 from TermTk.TTkCore.string import TTkString
-from TermTk.TTkCore.shortcut import TTkShortcut
 from TermTk.TTkLayouts.layout import TTkLayout
 from TermTk.TTkLayouts.boxlayout import TTkHBoxLayout
 from TermTk.TTkWidgets.menu import TTkMenuButton
@@ -39,9 +38,30 @@ class TTkMenuBarButton(TTkMenuButton):
     classStyle:Dict[str,Dict[str,Any]] = TTkMenuButton.classStyle | {
                 'default': TTkMenuButton.classStyle['default'] |
                            {'borderColor':TTkColor.RST,
-                            'glyphs':('├','─','┤','┄','┄','▶')},
+                            #'glyphs':('┠','─','┨','┄','┄','▶')},
+                            #'glyphs':('┠','─','┨','┄','┄','▶')},
+                            'glyphs':('┎','─','┒','┄','┄','▶')},
+                            #'glyphs':('┖','─','┚','┄','┄','▶')},
+                            #'glyphs':('╰','─','╯','┄','┄','▶')},
+
+                'hover': TTkMenuButton.classStyle['hover'] |
+                           {#'borderColor':TTkColor.RST,
+                            'glyphs':('┠','─','┨','┄','┄','▶')},
+                            #'glyphs':('┎','─','┒','┄','┄','▶')},
+                            #'glyphs':('┖','─','┚','┄','┄','▶')},
+                            #'glyphs':('╰','─','╯','┄','┄','▶')},
+
+                'highlighted': TTkMenuButton.classStyle['highlighted'] |
+                           {'color': TTkColor.BOLD,
+                            #'glyphs':('┠','─','┨','┄','┄','▶')},
+                            'glyphs':('┎','─','┒','┄','┄','▶')},
+                            #'glyphs':('┖','─','┚','┄','┄','▶')},
+                            #'glyphs':('╰','─','╯','┄','┄','▶')},
+
                 'clicked': TTkMenuButton.classStyle['clicked'] |
-                           {'color': TTkColor.fg("#ffff88")},
+                           {'color': TTkColor.fg('#000000') + TTkColor.bg('#0088FF') + TTkColor.BOLD,
+                            'glyphs':('┠','─','┨','┄','┄','▶')},
+
             }
 
     __slots__ = ()
@@ -56,14 +76,9 @@ class TTkMenuBarButton(TTkMenuButton):
 
     def setCheckable(self, ch):
         txtlen = self.text().termWidth()
-        if ch:
-            self.resize(txtlen+4,1)
-            self.setMinimumSize(txtlen+4,1)
-            self.setMaximumSize(txtlen+4,1)
-        else:
-            self.resize(txtlen+2,1)
-            self.setMinimumSize(txtlen+2,1)
-            self.setMaximumSize(txtlen+2,1)
+        self.resize(txtlen+4,1)
+        self.setMinimumSize(txtlen+4,1)
+        self.setMaximumSize(txtlen+4,1)
         return super().setCheckable(ch)
 
     def paintEvent(self, canvas):
@@ -73,13 +88,13 @@ class TTkMenuBarButton(TTkMenuButton):
         textColor   = style['color']
 
         if self._checkable:
-            text = ('▣ ' if self._checked else '□ ') + self.text()
+            text = ('▣ ' if self._checked else '□ ') + self.text()  # + ' '
         else:
             text = self.text()
 
-        canvas.drawText(pos=(0,0), color=borderColor ,text=glyphs[2])
-        canvas.drawText(pos=(1+text.termWidth(),0), color=borderColor ,text=glyphs[0])
-        canvas.drawText(pos=(1,0), color=textColor ,text=text)
+        canvas.drawText(pos=(0,0), color=borderColor ,text=glyphs[1]+glyphs[2])
+        canvas.drawText(pos=(2+text.termWidth(),0), color=borderColor ,text=glyphs[0]+glyphs[1])
+        canvas.drawText(pos=(2,0), color=textColor ,text=text)
 
 
 class TTkMenuBarLayout(TTkHBoxLayout):
@@ -100,12 +115,7 @@ class TTkMenuBarLayout(TTkHBoxLayout):
 
     def addMenu(self,text:TTkString, data:object=None, checkable:bool=False, checked:bool=False, alignment=TTkK.LEFT_ALIGN):
         '''addMenu'''
-        text = text if issubclass(type(text),TTkString) else TTkString(text)
-        text, mnemonics = text.extractShortcuts()  # TTkString.mnemonicColor
         button = TTkMenuBarButton(text=text, data=data, checkable=checkable, checked=checked)
-        for ch in mnemonics:
-            shortcut = TTkShortcut(key=TTkK.CTRL | ord(ch.upper()))
-            shortcut.activated.connect(button.shortcutEvent)
         self._mbItems(alignment).addWidget(button)
         self._buttons.append(button)
         self.update()

@@ -448,7 +448,7 @@ class TTkString():
         out   = ""
         color = None
         for ch, col in zip(self._text, self._colors):
-            if col != color:
+            if color is None or col != color:
                 color = col
                 out += str(TTkColor.RST) + str(color)
             out += ch
@@ -546,7 +546,7 @@ class TTkString():
         _gen = _chGenerator()
         _found = False
         for ch,color in _gen:
-            if ch == '&':
+            if ch == '_':  # '&'
                 _found =  True
                 continue
             if _found:

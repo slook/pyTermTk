@@ -58,7 +58,7 @@ Methods
 __all__ = ['pyTTkSlot', 'pyTTkSignal']
 
 # from typing import TypeVar, TypeVarTuple, Generic, List
-from inspect import getfullargspec, iscoroutinefunction
+from inspect import iscoroutinefunction
 from types import LambdaType
 from typing import Union, get_origin, get_args
 from threading import Lock
@@ -133,7 +133,9 @@ class pyTTkSignal():
         self._connected_slots = {}
         self._connected_async_slots = {}
         self._mutex = Lock()
-        pyTTkSignal._signals.append(self)
+
+        if importlib.util.find_spec('pyodideProxy'):
+            pyTTkSignal._signals.append(self)
 
     def connect(self, slot):
         # ref: http://pyqt.sourceforge.net/Docs/PyQt5/signals_slots.html#connect
@@ -147,17 +149,18 @@ class pyTTkSignal():
         #    no_receiver_check - suppress the check that the underlying C++ receiver instance still exists and deliver the signal anyway.
         #    Returns:
         #        a Connection object which can be passed to disconnect(). This is the only way to disconnect a connection to a lambda function.
-        spec = getfullargspec(slot)
         if isinstance(slot, LambdaType) and slot.__name__ == "<lambda>":
-            nargs = len(spec.args)
-        elif spec.varargs:
+            nargs = slot.__code__.co_argcount
+        elif bool(slot.__code__.co_flags & 0x04):  # CO_VARARGS flag
             nargs = len(self._types)
         else:
-            nargs = len(spec.args) - (1 if (hasattr(slot, '__self__')) else 0)
-        ndef = 0 if not spec.defaults else len(spec.defaults)
+            nargs = slot.__code__.co_argcount - (1 if hasattr(slot, '__self__') else 0)
+        ndef = 0 if not slot.__defaults__ else len(slot.__defaults__)
+
         if nargs-ndef > len(self._types):
-                error = f"Decorated slot has no signature compatible: {slot.__name__} {spec} != signal{self._types}"
-                raise TypeError(error)
+            error = f"Decorated slot has no signature compatible: {slot.__name__}{slot._TTkslot_attr} != signal{self._types}"
+            raise TypeError(error)
+
         if hasattr(slot, '_TTkslot_attr'):
             if len(slot._TTkslot_attr) > len(self._types):
                 error = "Decorated slot has no signature compatible: "+slot.__name__+str(slot._TTkslot_attr)+" != signal"+str(self._types)
@@ -166,6 +169,7 @@ class pyTTkSignal():
                 for slot_type,signal_type in zip(slot._TTkslot_attr, self._types):
                     if not _check_types(slot_type, signal_type):
                         raise TypeError("Decorated slot has no signature compatible: "+slot.__name__+str(slot._TTkslot_attr)+" != signal"+str(self._types))
+
         if iscoroutinefunction(slot):
             if slot not in self._connected_async_slots:
                 self._connected_async_slots[slot]=slice(nargs)

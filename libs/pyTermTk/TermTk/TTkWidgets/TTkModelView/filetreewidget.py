@@ -24,6 +24,7 @@ __all__ = ['TTkFileTreeWidget']
 
 import os
 import datetime
+import stat
 
 from TermTk.TTkCore.color import TTkColor
 
@@ -153,13 +154,27 @@ class TTkFileTreeWidget(TTkTreeWidget):
         self._filter = '*'
         super().__init__(**kwargs)
         self.setHeaderLabels(["Name", "Size", "Type", "Date Modified"])
+        self.setColumnWidth(0, 40)
+        self._sortingEnabled = True
+        self.sortItems(0, self._sortOrder)
+
         self.openPath(self._path)
-        self.resizeColumnToContents(0)
+        #self.resizeColumnToContents(0)
         self.resizeColumnToContents(1)
         self.resizeColumnToContents(2)
         self.resizeColumnToContents(3)
         self.itemExpanded.connect(self._updateChildren)
         self.itemActivated.connect(self._activated)
+
+    def sortKey(self, item):
+
+        def _dirsTop():
+            # Always group dirs above files regardless of order
+            isDir = item.getType() == TTkFileTreeWidgetItem.DIR
+            return isDir if self._sortOrder == TTkK.DescendingOrder else (not isDir)
+
+        # Sort by _raw data values, and also sub-sort by Name (0) as tie-breaker
+        return (_dirsTop(), item.sortData(self._sortColumn), item.sortData(0))
 
     def setFilter(self, filter):
         self._filter = filter
@@ -173,83 +188,115 @@ class TTkFileTreeWidget(TTkTreeWidget):
         if not os.path.exists(path): return
         self._path = path
 
+        # Temporarily disable sorting for increased performance
+        isSorted = self._sortingEnabled
+        self._sortingEnabled = False
+
         self.clear()
-        for i in TTkFileTreeWidget._getFileItems(path):
-            self.addTopLevelItem(i)
+        self.addTopLevelItems(TTkFileTreeWidget._getFileItems(path))
         self.setFilter(self._filter)
+
+        self.setSortingEnabled(isSorted)
+        self.sortItems(self._sortColumn, self._sortOrder)
 
     @staticmethod
     def _getFileItems(path):
         path = os.path.abspath(path)
-        if not os.path.exists(path): return []
-        dir_list = os.listdir(path)
-        ret = []
-        for n in dir_list:
-            nodePath = os.path.join(path,n)
 
-            def _getStat(_path):
-                info = os.stat(_path)
-                time = datetime.datetime.fromtimestamp(info.st_ctime).strftime('%Y-%m-%d %H:%M:%S')
-                if info.st_size > (1024*1024*1024):
-                    size = f"{info.st_size/(1024*1024*1024):.2f} GB"
-                if info.st_size > (1024*1024):
-                    size = f"{info.st_size/(1024*1024):.2f} MB"
-                elif info.st_size > 1024:
-                    size = f"{info.st_size/1024:.2f} KB"
-                else:
-                    size = f"{info.st_size} bytes"
-                return time, size, info.st_ctime, info.st_size
+        def _getSize(fsize):
+            if fsize <= 0:
+                return ""
+            if fsize > (1024*1024*1024):
+                return f"{fsize/(1024*1024*1024):.2f} GB"
+            if fsize > (1024*1024):
+                return f"{fsize/(1024*1024):.2f} MB"
+            if fsize > 1024:
+                return f"{fsize/1024:.2f} KB"
+            return f"{fsize} B"  # bytes
 
-            if os.path.isdir(nodePath):
-                if os.path.exists(nodePath):
-                    time, _, rawTime, _ = _getStat(nodePath)
-                    color = TTkCfg.theme.folderNameColor
-                else:
-                    time, _, rawTime, _ = ""
-                    color = TTkCfg.theme.failNameColor
+        def _getTime(mtime):
+            if not mtime: return ""
+            return datetime.datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M:%S')
 
-                if os.path.islink(nodePath):
-                    name = TTkString()+TTkCfg.theme.linkNameColor+n+'/'+TTkColor.RST+' -> '+TTkCfg.theme.folderNameColor+os.readlink(nodePath)
+        def _getItem(entry):
+            #nodePath = entry.path
+            st = None
+
+            try:
+                st = entry.stat()  # follow_symlinks=False)
+
+            except OSError as error:
+                # Error reading file entry
+                time, size, rawTime, rawSize = "", "", 0, 0
+                color = TTkCfg.theme.failNameColor
+                name = TTkString()+color+entry.name
+                typef="Broken"
+
+            if entry.is_dir():
+                rawTime = st.st_mtime if st else 0
+                time = _getTime(rawTime)
+                rawSize = -1
+                size = ""
+                color = TTkCfg.theme.folderNameColor
+                item_type = TTkFileTreeWidgetItem.DIR
+                item_indicator = TTkK.ShowIndicator
+                ext = ""
+
+                if entry.is_symlink():
+                    name = TTkString()+TTkCfg.theme.linkNameColor+entry.name+os.sep+TTkColor.RST+' -> '+color+os.readlink(entry.path).rstrip(os.sep)+os.sep
                     typef = "Folder Link"
                 else:
-                    name = TTkString()+color+n+'/'
+                    name = TTkString()+color+entry.name.rstrip(os.sep)+os.sep
                     typef = "Folder"
 
-                ret.append(TTkFileTreeWidgetItem(
-                                [ name, "", typef, time],
-                                raw = [ n , -1 , typef , rawTime ],
-                                path=nodePath,
-                                type=TTkFileTreeWidgetItem.DIR,
-                                childIndicatorPolicy=TTkK.ShowIndicator))
+            elif entry.is_file():  # follow_symlinks=False  # or entry.is_symlink():
+                rawTime = st.st_mtime if st else 0
+                time = _getTime(rawTime)
+                rawSize = st.st_size if st else 0
+                size = _getSize(rawSize)
+                item_type = TTkFileTreeWidgetItem.FILE
+                item_indicator = TTkK.DontShowIndicator
 
-            elif os.path.isfile(nodePath) or os.path.islink(nodePath):
-                if os.path.exists(nodePath):
-                    time, size, rawTime, rawSize = _getStat(nodePath)
-                    if os.access(nodePath, os.X_OK):
-                        color = TTkCfg.theme.executableColor
-                        typef="Exec"
-                    else:
-                        color = TTkCfg.theme.fileNameColor
-                        typef="File"
+                _, ext = os.path.splitext(entry.name)
+                if ext: ext = ext.lstrip(".")
+
+                if bool(st.st_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)):
+                    color = TTkCfg.theme.executableColor
+                    typef="File (Exec)"
                 else:
-                    time, size, rawTime, rawSize = "", "", 0, 0
-                    color = TTkCfg.theme.failNameColor
-                    typef="Broken"
+                    color = TTkCfg.theme.fileNameColor
+                    typef="File"  # (.{ext})"
 
-                if os.path.islink(nodePath):
-                    name = TTkString()+TTkCfg.theme.linkNameColor+n+TTkColor.RST+' -> '+color+os.readlink(nodePath)
+                if entry.is_symlink():
+                    name = TTkString()+TTkCfg.theme.linkNameColor+entry.name+TTkColor.RST+' -> '+color+os.readlink(entry.path)
                     typef += " Link"
                 else:
-                    name = TTkString()+color+n
+                    name = TTkString()+color+entry.name
 
-                _, ext = os.path.splitext(n)
-                if ext: ext = f"{ext[1:]} "
-                ret.append(TTkFileTreeWidgetItem(
-                                [ name, size, typef, time],
-                                raw = [ n , rawSize , typef , rawTime ],
-                                path=nodePath,
-                                type=TTkFileTreeWidgetItem.FILE,
-                                childIndicatorPolicy=TTkK.DontShowIndicator))
+            else:
+                time, size, rawTime, rawSize = "", "", 0, 0
+                color = TTkCfg.theme.failNameColor
+                name = TTkString()+color+entry.name
+                typef, ext = "Invalid", ""
+
+            return TTkFileTreeWidgetItem(
+                [ name, size, typef, time],
+                raw = [ entry.name , rawSize , ext , rawTime ],
+                path=entry.path,
+                type=item_type,
+                childIndicatorPolicy=item_indicator)
+
+        ret = []
+
+        try:
+            with os.scandir(path) as entries:
+                for entry in entries:
+                    ret.append(_getItem(entry))
+
+        except OSError as error:
+            # Folder doesn't exist or error reading folder
+            pass
+
         return ret
 
     @pyTTkSlot(TTkFileTreeWidgetItem)
@@ -259,6 +306,8 @@ class TTkFileTreeWidget(TTkTreeWidget):
         for i in children:
             # TODO: Find a better way than calling an internal function
             i._processFilter(self._filter)
+        if not self._sortingEnabled: return
+        item.sortChildren(self._sortColumn, self._sortOrder, key=self.sortKey)
 
     @pyTTkSlot(TTkFileTreeWidgetItem, int)
     def _activated(self, item, _):

@@ -102,10 +102,13 @@ class _TTkTerm(TTkTermBase):
 
     @staticmethod
     def _getTerminalSize():
-       try:
-           return os.get_terminal_size()
-       except OSError as e:
-           print(f'ERROR: {e}')
+        if not os.isatty(sys.stdin.fileno()):
+            print("Not a TTY")
+            return (80, 24)
+        try:
+            return os.get_terminal_size()
+        except OSError as e:
+            print(f'ERROR: {e}')
     TTkTermBase.getTerminalSize = _getTerminalSize
 
     _sigWinChMutex = Lock()
