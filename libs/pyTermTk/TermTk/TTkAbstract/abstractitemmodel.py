@@ -32,3 +32,6 @@ class TTkAbstractItemModel():
     )
     def __init__(self) -> None:
         self.dataChanged = pyTTkSignal()
+
+    def clear(self) -> None:
+        self.dataChanged.clear()

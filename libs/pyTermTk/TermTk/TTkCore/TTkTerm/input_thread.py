@@ -23,7 +23,7 @@
 __all__ = ['TTkInput']
 
 import re
-from time import time
+from time import monotonic
 
 import threading, queue
 
@@ -86,22 +86,23 @@ class TTkInput:
 
     @staticmethod
     def start() -> None:
-        TTkInput._inputThread.start()
-        while inq := TTkInput._inputQueue.get():
-            kevt,mevt,paste = inq
 
-            # Try to filter out the queued moved mouse events
-            while (not kevt and
-                   not paste and
-                   mevt and mevt.evt == TTkK.Drag and
-                   not TTkInput._inputQueue.empty() ):
-                mevtOld = mevt
-                kevt, mevt, paste = TTkInput._inputQueue.get()
-                if (kevt  or
-                    paste or
-                    mevt and mevt.evt != TTkK.Drag):
-                    TTkInput.inputEvent.emit(kevt, mevtOld)
-                    break
+        TTkInput._inputThread.start()
+        _pendingDrag = None
+
+        while inq := TTkInput._inputQueue.get():
+            kevt, mevt, paste = inq
+
+            if not kevt and not paste and mevt and mevt.evt == TTkK.Drag:
+                if not TTkInput._inputQueue.empty():
+                    _pendingDrag = mevt
+                    continue
+
+                _pendingDrag = None  # queue empty: discard stale pending, emit current
+
+            elif _pendingDrag is not None:
+                TTkInput.inputEvent.emit(None, _pendingDrag)
+                _pendingDrag = None
 
             if kevt or mevt:
                 TTkInput.inputEvent.emit(kevt, mevt)
@@ -162,7 +163,7 @@ class TTkInput:
 
             def _checkTap(lastTime, tap):
                 if state=="M":
-                    t = time()
+                    t = monotonic()
                     if (t-lastTime) < 0.4:
                         return t, tap+1
                     else:
@@ -229,3 +230,4 @@ class TTkInput:
 
         hex = [f"0x{ord(x):02x}" for x in stdinRead]
         TTkLog.error("UNHANDLED: "+stdinRead.replace("\033","<ESC>") + " - "+",".join(hex))
+        return None, None, None

@@ -103,14 +103,15 @@ class TTkLineEdit(TTkWidget):
         '''Display characters as they are entered while editing otherwise display asterisks.'''
 
     classStyle = {
-                'default':     {'color':         TTkColor.fgbg("#dddddd","#222222"),
-                                'bgcolor':       TTkColor.fgbg("#666666","#222222")+TTkColor.UNDERLINE,
-                                'selectedColor': TTkColor.fgbg("#ffffff","#008844")},
+                'default':     {'color':         TTkColor.fgbg("#dddddd","#222244")+TTkColor.BOLD,
+                                'bgcolor':       TTkColor.fgbg("#666666","#222244")+TTkColor.UNDERLINE,
+                                'selectedColor': TTkColor.fgbg("#000000","FFAA40")},  # #D38C2D
                 'disabled':    {'color':         TTkColor.fg(  "#888888"),
-                                'bgcolor':       TTkColor.fg(  "#444444")+TTkColor.UNDERLINE,
+                                'bgcolor':       TTkColor.fg(  "#444444")+TTkColor.STRIKETROUGH,
                                 'selectedColor': TTkColor.fgbg("#888888","#444444")},
-                'focus':       {'color':         TTkColor.fgbg("#dddddd","#000044"),
-                                'bgcolor':       TTkColor.fgbg("#666666","#000044")+TTkColor.UNDERLINE}
+                'focus':       {'color':         TTkColor.fgbg("#FFFFFF","#000080")+TTkColor.BOLD,
+                                'bgcolor':       TTkColor.fgbg("#F9AA40","#000080")+TTkColor.ITALIC}
+                                #'bgcolor':       TTkColor.fgbg("#F9AA40","#000080")} #+TTkColor.UNDERLINE}
             }
 
     __slots__ = (
@@ -264,10 +265,11 @@ class TTkLineEdit(TTkWidget):
         if cursorPos - self._offset < 0:
             self._offset = cursorPos
 
-        if self._replace:
-            self.setWidgetCursor(pos=(cursorPos-self._offset, 0), type=TTkK.Cursor_Blinking_Block)
-        else:
-            self.setWidgetCursor(pos=(cursorPos-self._offset, 0), type=TTkK.Cursor_Blinking_Bar)
+        if self.hasFocus():
+            if self._replace or not self._text:
+                self.setWidgetCursor(pos=(cursorPos-self._offset, 0), type=TTkK.Cursor_Blinking_Block)
+            else:
+                self.setWidgetCursor(pos=(cursorPos-self._offset, 0), type=TTkK.Cursor_Blinking_Bar)
 
         self.update()
 
@@ -501,13 +503,16 @@ class TTkLineEdit(TTkWidget):
                 text += ("*"*(len(self._text)))
             else:
                 text += self._text
+
+        canvas.fill(color=bgcolor)
+
+        if not self._text:
+            hint = TTkString(' ', color=(color if self.hasFocus() else bgcolor)) + self._hint  # White space at start
+            canvas.drawTTkString(pos=(0,0), text=hint, color=bgcolor)
+            return
+
         if self._selectionFrom < self._selectionTo:
             text = text.setColor(color=selectColor, posFrom=self._selectionFrom, posTo=self._selectionTo)
-        text = text.substring(self._offset)
-        canvas.fill(color=bgcolor)
-        if self._text:
-            canvas.drawTTkString(pos=(0,0), text=text, color=color)
-        else:
-            canvas.drawTTkString(pos=(0,0), text=self._hint, color=bgcolor)
 
-
+        text = text.substring(self._offset) + (' ' if self.hasFocus() else '')  # Space for white cursor foreground
+        canvas.drawTTkString(pos=(0,0), text=text, color=color)

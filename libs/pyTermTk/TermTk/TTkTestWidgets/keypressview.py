@@ -37,13 +37,14 @@ from TermTk.TTkWidgets.widget import TTkWidget
 from TermTk.TTkTestWidgets.keypressviewfont import TTkKeyPressViewFont
 
 class TTkKeyPressView(TTkWidget):
-    __slots__ = ('_fadeDuration','_keys','_anim')
+    __slots__ = ('_fadeDuration', '_keys', '_anim', '_mousePos')
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         TTkInput.inputEvent.connect(self._processInput)
         self._keys:List[List] = []
-        self._fadeDuration = 2.5
+        self._fadeDuration = 5
+        self._mousePos = None
         self._anim = TTkPropertyAnimation(self, '_pushFade')
 
     @pyTTkSlot(TTkKeyEvent, TTkMouseEvent)
@@ -66,22 +67,33 @@ class TTkKeyPressView(TTkWidget):
              self._keys[-1][0]=1
         else:
             self._keys.append([1,text,evt.type])
+
+        self._mousePos = None
         self._startFade()
 
     @pyTTkSlot(TTkMouseEvent)
     def _addMouse(self, evt):
-              # return f"MouseEvent ({self.x},{self.y}) {self.key2str()} {self.evt2str()} {self.mod2str()} tap:{self.tap} - {self.raw}"
-        # text = f"M:{(evt.x,evt.y)} {evt.key2str().replace('Button','')} {evt.evt2str().replace('Release','').replace('Press','')} {evt.mod2str().replace('NoModifier','')}"
-        if evt.key==TTkMouseEvent.NoButton: return
-        tap = " "
-        if evt.tap==1: tap=" Click "
+
+        self._mousePos = (evt.x, evt.y)
+
+        if evt.evt == TTkMouseEvent.Move:
+            self.update()
+            return
+
+        key    = evt.key2str().replace('Button', '')   # "Left", "Right", "Mid", "Wheel"
+        action = evt.evt2str()                         # "Press","Release","Drag","Up","Down","Left","Right"
+
+        tap = ""
+        if evt.tap==1: tap=" SingleClick "
         if evt.tap==2: tap=" DoubleClick "
         if evt.tap==3: tap=" TripleClick "
         if evt.tap>3:  tap=f" {evt.tap} Clicks "
-        if evt.evt==TTkMouseEvent.Drag: tap=" Drag "
-        if evt.evt==TTkMouseEvent.Release: tap+="Release "
+        text = f"{key} {action}{tap}"
 
-        text = f"M:{(evt.x,evt.y)} {evt.key2str().replace('Button','')}{tap}{evt.mod2str().replace('NoModifier','')}"
+        mod = evt.mod2str()
+        if mod != "NoModifier":
+            text = f"{mod}+{text}"
+
         self._keys.append([1,text,0x100])
         self._startFade()
 
@@ -113,12 +125,19 @@ class TTkKeyPressView(TTkWidget):
         return ret
 
     def paintEvent(self, canvas):
+
+        if self._mousePos is not None:
+            x, y = self._mousePos
+            x_text = f"X={x:4d}"
+            y_text = f"Y={y:4d}"
+            canvas.drawText(pos=(0,1), text=x_text, color=TTkColor.BOLD)
+            canvas.drawText(pos=(0,2), text=y_text, color=TTkColor.BOLD)
+
         for alpha,text,_ in self._keys:
             r = int(0xbb*alpha)
             g = int(0xff*alpha)
             b = int(0xff*alpha)
             color = TTkColor.fg(f"#{r<<16|g<<8|b:06x}")
-            #canvas.drawText(pos=((self.width()-len(text))//2,0),text=text,color=color)
             m = self.txt2map(text)
             canvas.drawText(pos=((self.width()-len(text)*3)//2,0),text=m[0],color=color)
             canvas.drawText(pos=((self.width()-len(text)*3)//2,1),text=m[1],color=color)

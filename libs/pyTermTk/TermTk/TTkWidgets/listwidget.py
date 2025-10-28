@@ -114,9 +114,9 @@ class TTkListWidget(TTkAbstractScrollView):
     classStyle = {
         'default': {
             'color':       TTkColor.RST,
-            'highlighted': TTkColor.bg("#004433"),
-            'hovered':     TTkColor.bg('#0088FF'),
-            'selected':    TTkColor.bg('#0055FF'),
+            'highlighted': TTkColor.fg('#000000')+TTkColor.bg("#0088FF")+TTkColor.BOLD,  # TTkColor.bg("#004433"),
+            'hovered':     TTkColor.fg("#ffff88")+TTkColor.bg('#000066'),  # TTkColor.bg('#0088FF'),
+            'selected':    TTkColor.fg('#000000')+TTkColor.bg('#D38C2D')+TTkColor.BOLD,  # TTkColor.bg('#0055FF'),
             'clicked':     TTkColor.fg('#FFFF00'),
             'disabled':    TTkColor.fg('#888888'),
             'searchColor': TTkColor.fg("#FFFF00")+TTkColor.UNDERLINE,

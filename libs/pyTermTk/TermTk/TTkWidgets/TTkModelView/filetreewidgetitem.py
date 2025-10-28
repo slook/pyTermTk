@@ -73,7 +73,12 @@ class TTkFileTreeWidgetItem(TTkTreeWidgetItem):
                 return TTkString(' '+TTkCfg.theme.fileIcon.folderClose+' ', TTkCfg.theme.folderIconColor)
 
     def sortData(self, col:int):
-        return self._raw[col]
+        '''
+        Split into numeric, alpha chunks for natural sorting and then
+        convert digit parts to int, treat alpha parts case insensitive
+        '''
+        parts = re.split(r'(\d+)', str(self._raw[col]))
+        return [int(part) if part.isdigit() else part.lower() for part in parts]
 
     def path(self):
         return self._path

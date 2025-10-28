@@ -26,6 +26,7 @@ from TermTk.TTkCore.cfg import TTkK
 from TermTk.TTkCore.helper import TTkHelper
 from TermTk.TTkCore.color import TTkColor
 from TermTk.TTkCore.canvas import TTkCanvas
+from TermTk.TTkCore.shortcut import TTkShortcut
 from TermTk.TTkCore.signal import pyTTkSignal, pyTTkSlot
 from TermTk.TTkCore.string import TTkString
 from TermTk.TTkCore.TTkTerm.inputkey import TTkKeyEvent, TTkKeyEvent_Character, TTkKeyEvent_SpecialKey
@@ -35,7 +36,7 @@ from TermTk.TTkLayouts.gridlayout import TTkGridLayout
 
 from TermTk.TTkWidgets.widget import TTkWidget
 from TermTk.TTkWidgets.scrollarea import TTkScrollArea
-from TermTk.TTkWidgets.resizableframe import TTkResizableFrame
+from TermTk.TTkWidgets.frame import TTkFrame
 
 from TermTk.TTkAbstract.abstractscrollview import TTkAbstractScrollView
 
@@ -44,16 +45,17 @@ class _TTkMenuSpacer(TTkWidget):
         super().__init__(**kwargs)
 
     def paintEvent(self, canvas):
-        canvas.drawText(pos=(0,0), text="-"*self.width())
+        canvas.drawMenuBarBg((0,0), self.width(), color=self.classStyle['disabled']['color'])
+
 
 class TTkMenuButton(TTkWidget):
     '''TTkMenuButton'''
     classStyle = TTkWidget.classStyle | {
                 'default':     {'color': TTkColor.RST},
-                'highlighted': {'color': TTkColor.fg('#00FF00')+TTkColor.bg('#0055FF')},
-                'hover':       {'color': TTkColor.fg('#00FF00')+TTkColor.bg('#0077FF')},
-                'checked':     {'color': TTkColor.fg('#00FF00')+TTkColor.bg('#00FFFF')},
-                'clicked':     {'color': TTkColor.fg('#FFFF00')},
+                'highlighted': {'color': TTkColor.fg('#000000')+TTkColor.bg('#FFAA40')+TTkColor.BOLD},
+                'hover':       {'color': TTkColor.fg('#000000')+TTkColor.bg('#D38C2D')+TTkColor.BOLD},
+                'checked':     {'color': TTkColor.fg('#D38C2D')+TTkColor.bg('#00FFFF')},
+                'clicked':     {'color': TTkColor.fg('#000000')+TTkColor.bg('#0088FF')+TTkColor.BOLD},
                 'disabled':    {'color': TTkColor.fg('#888888')},
             }
 
@@ -80,7 +82,8 @@ class TTkMenuButton(TTkWidget):
         self._shortcuts = []
         self._highlighted = False
         super().__init__(**kwargs)
-        width = self._text.termWidth() + (3 if self._checkable else 1)
+        self.setText(text)
+        width = self._text.termWidth() + 2  # (3 if self._checkable else 1)
         self.setMinimumWidth(width)
         # self.setStyle(self.classStyle)
 
@@ -155,17 +158,38 @@ class TTkMenuButton(TTkWidget):
         :param text:
         :type text: :py:class:`TTkString`
         '''
-        self._text = TTkString(text)
-        self.textChanged.emit(self._text)
+        is_changed = str(text) != str(self._text)
+        self._text = text if issubclass(type(text), TTkString) else TTkString(text)
+        self._text, self._shortcuts = self._text.extractShortcuts()
+
+        if issubclass(type(_p := self.parentWidget()),TTkAbstractScrollView):
+            context = TTkK.ShortcutContext.WidgetWithChildrenShortcut
+        else:
+            context = TTkK.ShortcutContext.WindowShortcut
+
+        for ch in self._shortcuts:
+            shortcut = TTkShortcut(
+                key=TTkK.CTRL | ord(ch.upper()),
+                parent=self.parentWidget(),
+                shortcutContext=context
+            )
+            shortcut.activated.connect(self.shortcutEvent)
+
+        if is_changed:
+            self.textChanged.emit(self._text)
+
         self.update()
 
     @pyTTkSlot()
     def shortcutEvent(self):
         self._triggerButton()
+        # Highlight the first entry in the submenu, but only if opened with key shortcut
+        if btns := [b for b in self._submenu if type(b)==TTkMenuButton and b.isEnabled()]:
+            btns[0].setHighlight(True)
 
     def _triggerSubmenu(self):
         if not self._submenu: return
-        width = 2+max(smb.minimumWidth() for smb in self._submenu if type(smb) is TTkMenuButton)
+        width = 4+max(smb.minimumWidth() for smb in self._submenu if type(smb) is TTkMenuButton)
         height = len(self._submenu)+2
         subMenu = TTkMenu(pos=(8,6), size=(width,height), caller=self)
         for smb  in self._submenu:
@@ -181,9 +205,7 @@ class TTkMenuButton(TTkWidget):
             subMenu.setTitleAlign(TTkK.LEFT_ALIGN)
             wid = self
             ox,oy = -1,0
-        # Highlight the first entry in the submenu
-        if btns := [b for b in self._submenu if type(b)==TTkMenuButton]:
-            btns[0].setHighlight(True)
+        TTkHelper.removeOverlayChild(wid)
         TTkHelper.overlay(wid, subMenu, ox,oy)
 
     def _triggerButton(self):
@@ -201,6 +223,7 @@ class TTkMenuButton(TTkWidget):
         self.update()
 
     def mouseReleaseEvent(self, evt:TTkMouseEvent) -> bool:
+        # TODO: if not self._highlighted: return False
         self._triggerButton()
         return True
 
@@ -212,10 +235,7 @@ class TTkMenuButton(TTkWidget):
 
     def addMenu(self, text:TTkString, data:object=None, checkable:bool=False, checked:bool=False):
         '''addMenu'''
-        text = text if issubclass(type(text),TTkString) else TTkString(text)
-        text, shortcuts = text.extractShortcuts()
         button = TTkMenuButton(text=text, data=data, checkable=checkable, checked=checked)
-        button._shortcuts = [ch.upper() for ch in shortcuts]
         self._submenu.append(button)
         return button
 
@@ -233,9 +253,9 @@ class TTkMenuButton(TTkWidget):
         if self._checkable:
             canvas.drawText(width=w, color=style['color'] ,text=('▣ ' if self._checked else '□ ')+self._text)
         else:
-            canvas.drawText(width=w, color=style['color'] ,text=self._text)
+            canvas.drawText(width=w, color=style['color'] ,text='  '+self._text)
         if self._submenu:
-            canvas._set(0, w-1, '▶', style['color'])
+            canvas._set(0, w-2, '▶', style['color'])
         off = 0
 
 class _TTkMenuAreaWidget(TTkAbstractScrollView):
@@ -268,17 +288,16 @@ class _TTkMenuAreaWidget(TTkAbstractScrollView):
     def _cleanHighlight(self):
         [b.setHighlight(False) for b in self._submenu if type(b)==TTkMenuButton]
 
-
     def keyEvent(self, evt:TTkKeyEvent) -> bool:
         if not self._submenu: return False
-        btns = [b for b in self._submenu if type(b)==TTkMenuButton]
+        btns = [b for b in self._submenu if type(b)==TTkMenuButton and b.isEnabled()]
         if isinstance(evt, TTkKeyEvent_SpecialKey):
             # Retrieve the current highlighted button
             curBtn = _b[0] if (_b := [b for b in btns if b._highlighted]) else None
             if evt.key == TTkK.Key_Up:
                 self._cleanHighlight()
                 if not curBtn:
-                    curBtn = btns[0]
+                    curBtn = btns[len(btns)-1]
                 else:
                     curBtn = btns[(btns.index(curBtn)-1)%len(btns)]
                 curBtn.setHighlight(True)
@@ -292,18 +311,29 @@ class _TTkMenuAreaWidget(TTkAbstractScrollView):
                 curBtn.setHighlight(True)
                 return True
             elif evt.key == TTkK.Key_Left:
-                TTkHelper.removeOverlayAndChild(self)
-                if self._caller:
+                if type(self._caller) is TTkMenuButton:
+                    # Close this submenu and go back into the parent menu
+                    TTkHelper.removeOverlayAndChild(self)
                     self._caller.setFocus()
+                else:
+                    pass  # TODO: Open adjacent menu to the left
                 return True
             elif evt.key == TTkK.Key_Right:
-                if curBtn:
-                    curBtn._triggerSubmenu()
+                if curBtn and curBtn._submenu:
+                    # Open submenu and highlight its first item
+                    curBtn.shortcutEvent()
+                else:
+                    pass  # TODO: Open adjacent menu to the right
+                return True
+            elif evt.key == TTkK.Key_Escape:
+                self._closeAll()
                 return True
             elif evt.key == TTkK.Key_Enter:
                 if curBtn:
                     curBtn.shortcutEvent()
-                    return True
+                else:
+                    btns[0].setHighlight(True)
+                return True
         elif isinstance(evt, TTkKeyEvent_Character):
             # Handle shortcuts
             if evt.key == " ":
@@ -349,7 +379,7 @@ class _TTkMenuAreaWidget(TTkAbstractScrollView):
     def minimumHeight(self):  return 0
 
 
-class TTkMenu(TTkResizableFrame):
+class TTkMenu(TTkFrame):
     __slots__ = ('_scrollView',
                  #Forwarded Methods
                  'addSpacer','addMenuItem')
@@ -371,6 +401,12 @@ class TTkMenu(TTkResizableFrame):
         w,h = self._scrollView.viewFullAreaSize()
         self.resize(w+3,h+2)
         return ret
+
+    def mousePressEvent(self, evt:TTkMouseEvent) -> bool:
+        if evt.y <= 0:
+            self._scrollView._closeAll()
+            return False  # click through top menubar
+        return True
 
     def keyEvent(self, evt:TTkKeyEvent) -> bool:
         return self._scrollView.keyEvent(evt)

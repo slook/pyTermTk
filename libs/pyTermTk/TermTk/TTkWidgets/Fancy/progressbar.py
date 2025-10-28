@@ -39,7 +39,7 @@ class TTkLookAndFeel():
         self.modified = pyTTkSignal()
 
 class TTkLookAndFeelFPBar(TTkLookAndFeel):
-    progresssBarColor = TTkColor.fg('#0000aa')+TTkColor.bg("#000044")
+    progresssBarColor = TTkColor.fg('#FFAA40')+TTkColor.bg("#0000AA")  # #0000aa, #000044
     progressBarTextColor = TTkColor.fg('#ffffff')
 
     __slots__ = ('_textWidth', '_showText')

@@ -91,7 +91,7 @@ class TTkDateTime(TTkContainer):
         size = (13+1+8,1)
         super().__init__(**kwargs|{'size':size, 'minSize':size})
         self._dateWidget = TTkDate(parent=self, pos=( 0,0), date=datetime.date())
-        self._timeWidget = TTkTime(parent=self, pos=(14,0), time=datetime.time())
+        self._timeWidget = TTkTime(parent=self, pos=(11,0), time=datetime.time())
         self._dateWidget.dateChanged.connect(self._somethingChanged)
         self._timeWidget.timeChanged.connect(self._somethingChanged)
 

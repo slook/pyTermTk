@@ -23,7 +23,7 @@
 __all__ = ['TTkSignalDriver','TTkInputDriver']
 
 import sys, os, re
-import signal
+import atexit, signal
 from select import select
 
 try: import fcntl, termios, tty
@@ -35,28 +35,33 @@ from TermTk.TTkCore.signal import pyTTkSignal, pyTTkSlot
 
 
 class TTkInputDriver():
-    __slots__ = ('_readPipe','_attr')
+    __slots__ = ('_want_exit','_attr')
 
     def __init__(self):
-        self._readPipe = os.pipe()
+        # self._readPipe = os.pipe()
+        self._want_exit = False
         self._attr = termios.tcgetattr(sys.stdin)
         tty.setcbreak(sys.stdin)
 
     def close(self):
-        termios.tcsetattr(sys.stdin, termios.TCSANOW, self._attr)
-        os.write(self._readPipe[1], b'quit')
+        # os.write(self._readPipe[1], b'quit')
+        self._want_exit = True
 
     def cont(self):
         tty.setcbreak(sys.stdin)
 
     def read(self):
         rm = re.compile('(\033?[^\033]+)')
-        while self._readPipe[0] not in (_rlist := select( [sys.stdin, self._readPipe[0]], [], [] )[0]):
-            # Read all the full input
-            _fl = fcntl.fcntl(sys.stdin, fcntl.F_GETFL)
-            fcntl.fcntl(sys.stdin, fcntl.F_SETFL, _fl | os.O_NONBLOCK) # Set the input as NONBLOCK to read the full sequence
-            stdinRead = sys.stdin.read()
-            fcntl.fcntl(sys.stdin, fcntl.F_SETFL, _fl)
+        fd = sys.stdin.fileno()
+
+        while not self._want_exit:
+            if fd not in select([fd], [], [], 0.5)[0]:
+                continue
+
+            stdinRead = os.read(fd, 4096).decode(errors='replace')
+
+            if not stdinRead:
+                break  # EOF — terminal closed stdin
 
             # Split all the ansi sequences
             # or yield any separate input char
@@ -70,6 +75,7 @@ class TTkInputDriver():
                     for ch in sr:
                         yield ch
 
+        termios.tcsetattr(fd, termios.TCSANOW, self._attr)
 
 
 class TTkSignalDriver():
@@ -84,6 +90,7 @@ class TTkSignalDriver():
         signal.signal(signal.SIGCONT, TTkSignalDriver._SIGCONT) # Resume
         signal.signal(signal.SIGINT,  TTkSignalDriver._SIGINT)  # Ctrl-C
 
+    @atexit.register
     def exit():
         signal.signal(signal.SIGINT,  signal.SIG_DFL)
 

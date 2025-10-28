@@ -224,7 +224,7 @@ def main():
     args = parser.parse_args()
     windowed = args.w
 
-    root = ttk.TTk()
+    root = ttk.TTk(sigmask=(ttk.TTkTerm.Sigmask.CTRL_Z))
 
     if windowed:
         rootTree = ttk.TTkWindow(parent=root,pos = (0,0), size=(80,45), title="Test Text Edit - Follow & Scroll", layout=ttk.TTkGridLayout(), border=True)

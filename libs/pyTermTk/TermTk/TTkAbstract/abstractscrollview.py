@@ -500,7 +500,7 @@ class TTkAbstractScrollViewGridLayout(TTkGridLayout, TTkAbstractScrollViewInterf
         # TTkLog.debug(f"x:{x},y:{y}, wo:{self._viewOffsetX,self._viewOffsetY}")
         if self._viewOffsetX == x and \
            self._viewOffsetY == y: # Nothing to do
-            return
+            return False
         self._excludeEvent = True
         for widget in self.iterWidgets():
             if isinstance(widget, TTkAbstractScrollViewInterface):
@@ -511,6 +511,7 @@ class TTkAbstractScrollViewGridLayout(TTkGridLayout, TTkAbstractScrollViewInterf
         self.viewMovedTo.emit(x,y)
         self.viewChanged.emit()
         self.update()
+        return True
 
     def setGeometry(self, x: int, y: int, w: int, h: int) -> None:
         ''' Set the geometry and emit viewChanged signal

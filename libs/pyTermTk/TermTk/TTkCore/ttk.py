@@ -69,7 +69,7 @@ def _ttk_capture_stderr():
         yield
     except Exception as e:
         TTkTerm.setStdErr(_stderr_bk)
-        TTkHelper.quit()
+        # TTkHelper.quit()
         raise e
     finally:
         TTkTerm.setStdErr(_stderr_bk)
@@ -148,9 +148,11 @@ class TTk(_TTkRootContainer):
         TTkInput.pasteEvent.connect(self._processPaste)
         TTkInput.exceptionRaised.connect(self._input_exception_hook)
 
-        TTkSignalDriver.sigStop.connect(self._SIGSTOP)
-        TTkSignalDriver.sigCont.connect(self._SIGCONT)
-        TTkSignalDriver.sigInt.connect( self._SIGINT)
+        # TTkSignalDriver.sigStop.connect(self._SIGSTOP)
+        # TTkSignalDriver.sigCont.connect(self._SIGCONT)
+        # TTkSignalDriver.sigInt.connect( self._SIGINT)
+        # TTkSignalDriver.init()
+
         self._drawMutex = threading.Lock()
         self._paintEvent = threading.Event()
         self._paintEvent.set()
@@ -167,16 +169,20 @@ class TTk(_TTkRootContainer):
             self._showMouseCursor = True
 
         TTkHelper.registerRootWidget(self)
+        TTkTerm.registerResizeCb(self._win_resize_cb)
 
     frame = 0
+    byte = 0
     time = time.time()
-    def _fps(self):
+    def _fps(self, size):
         curtime = time.time()
         self.frame+=1
+        self.byte+=size
         delta = curtime - self.time
         if delta > 5:
-            TTkLog.debug(f"fps: {int(self.frame/delta)}")
+            TTkLog.info(f"{(self.frame/delta):.1f} FPS ({int(self.byte/delta)} B/s)")
             self.frame = 0
+            self.byte = 0
             self.time  = curtime
 
     def mainloop(self) -> None:
@@ -199,13 +205,6 @@ class TTk(_TTkRootContainer):
             TTkLog.debug( "" )
             TTkLog.debug( "Starting Main Loop..." )
             TTkLog.debug(f"screen = ({TTkTerm.getTerminalSize()})")
-
-            # Register events
-            TTkSignalDriver.init()
-
-            TTkLog.debug("Signal Event Registered")
-
-            TTkTerm.registerResizeCb(self._win_resize_cb)
 
             self._timer.timeout.connect(self._time_event)
             self._timer.start(0.1)
@@ -231,7 +230,6 @@ class TTk(_TTkRootContainer):
                 TTkHelper.quitEvent.emit()
                 self._quit_timer()
                 self._timer.join()
-                TTkSignalDriver.exit()
                 self.quit()
                 TTkTerm.exit()
                 for e in self._exceptions:
@@ -248,7 +246,7 @@ class TTk(_TTkRootContainer):
         # 'finally:' block
         self._quit_timer()
         TTkInput.inputEvent.clear()
-        TTkInput.close() # Shoul close it and wait for join
+        # # TTkInput.close() # Shoul close it and wait for join
         # The exception will be raised in the main loop
         # Once it is ensured that the env is clean
         # And the terminal goes back to its original state
@@ -265,7 +263,7 @@ class TTk(_TTkRootContainer):
         # 'finally:' block
         self._quit_timer()
         TTkInput.inputEvent.clear()
-        TTkInput.close() # Shoul close it and wait for join
+        # # TTkInput.close() # Shoul close it and wait for join
         self._timer.join()
         # The exception will be raised in the main loop
         # Once it is ensured that the env is clean
@@ -361,10 +359,10 @@ class TTk(_TTkRootContainer):
         w,h = TTkTerm.getTerminalSize()
         with self._drawMutex:
             self.setGeometry(0,0,w,h)
-            self._fps()
-            TTkHelper.paintAll()
+            byte = TTkHelper.paintAll()
             self.paintExecuted.emit()
         self._timer.start(1/TTkCfg.maxFps)
+        self._fps(byte)
 
     def _win_resize_cb(self, width, height):
         TTkGlbl.term_w = int(width)
@@ -398,9 +396,9 @@ class TTk(_TTkRootContainer):
         TTkHelper.cleanRootWidget()
         TTkInput.inputEvent.disconnect(self._processInput)
         TTkInput.pasteEvent.disconnect(self._processPaste)
-        TTkSignalDriver.sigStop.disconnect(self._SIGSTOP)
-        TTkSignalDriver.sigCont.disconnect(self._SIGCONT)
-        TTkSignalDriver.sigInt.disconnect( self._SIGINT)
+        # TTkSignalDriver.sigStop.disconnect(self._SIGSTOP)
+        # TTkSignalDriver.sigCont.disconnect(self._SIGCONT)
+        # TTkSignalDriver.sigInt.disconnect( self._SIGINT)
         self._quit_timer()
         TTkInput.inputEvent.clear()
         TTkInput.close()

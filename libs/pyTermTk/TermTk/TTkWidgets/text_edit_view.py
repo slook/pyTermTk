@@ -278,6 +278,14 @@ class TTkTextEditView(TTkAbstractScrollView):
         self.viewChanged.connect(self._pushCursor)
         # self.viewChanged.connect(self._check_document_wrap_position)
 
+    def close(self) -> None:
+        '''Cleanup slots of signals owned by this widget and its dependants'''
+        for signal in {self._currentColorChanged, self._cursorPositionChanged_sig,
+                       self._undoAvailable_sig, self._redoAvailable_sig, self._textChanged}:
+            signal.clear()
+            signal = None
+        super().close()
+
     def multiLine(self) -> bool:
         '''
         This property define if the text edit area will use a single line, like in the line-edit or it allows multilines like a normal text edit area.

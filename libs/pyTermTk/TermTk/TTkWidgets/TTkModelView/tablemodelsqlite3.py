@@ -24,7 +24,11 @@ from __future__ import annotations
 
 __all__=['TTkTableModelSQLite3']
 
-import sqlite3
+try:
+    import sqlite3
+except:
+    pass  # OpenSUSE has a dummy package
+
 import threading
 
 from typing import Any,Dict,List

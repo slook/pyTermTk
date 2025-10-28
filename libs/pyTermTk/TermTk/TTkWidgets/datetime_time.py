@@ -302,9 +302,9 @@ class TTkTime(TTkWidget):
         if selected == _FieldSelected.HOURS:
             delta = 1 * 3600
         elif selected == _FieldSelected.MINUTES:
-            delta = 5 * 60
+            delta = 1 * 60
         elif selected == _FieldSelected.SECONDS:
-            delta = 5
+            delta = 1
         if delta:
             if evt.evt in (TTkK.WHEEL_Up, TTkK.WHEEL_Left):
                 self._addDelta(delta=delta)
