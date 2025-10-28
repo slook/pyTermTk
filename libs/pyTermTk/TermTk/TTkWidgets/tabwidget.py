@@ -76,20 +76,25 @@ _tabGlyphs = {
 
 _tabStyle  = {
             'default':     {'color': TTkColor.fgbg("#dddd88","#000044"),
-                            'bgColor': TTkColor.fgbg("#000000","#8888aa"),
-                            'borderColor': TTkColor.RST,
+                            #'bgColor': TTkColor.fgbg("#000000","#8888aa"),
+                            'borderColor': TTkColor.fg('#8888aa'),  #000080
                             'tabOffsetColor': TTkColor.RST,
                             'glyphs':_tabGlyphs},
             'disabled':    {'color': TTkColor.fg('#888888'),
                             'borderColor':TTkColor.fg('#888888'),
                             'tabOffsetColor': TTkColor.RST},
-            'focus':       {'color': TTkColor.fgbg("#dddd88","#000044")+TTkColor.BOLD,
-                            'borderColor': TTkColor.fg("#ffff00") + TTkColor.BOLD,
-                            'tabOffsetColor': TTkColor.RST},
         }
 
 _tabStyleNormal = {
-            'default':     {'borderColor': TTkColor.RST},
+            'default':     {'color': TTkColor.fgbg("#dddd88","#000044"),
+                            'bgColor': TTkColor.fgbg("#000000","#8888aa"),
+                            'borderColor': TTkColor.fg('#8888aa')},
+        }
+
+_tabStyleSelected = {
+            'default':     {'color': TTkColor.fgbg("#dddd88","#000080")+TTkColor.BOLD,
+                            'bgColor': TTkColor.fgbg("#000000","#000080"),
+                            'borderColor': TTkColor.fg("#0088FF")}
         }
 
 _tabStyleFocussed = {
@@ -130,8 +135,8 @@ class _TTkTabBarDragData():
 # class _TTkTabColorButton(TTkContainer):
 class _TTkTabColorButton(TTkWidget):
     classStyle = _tabStyle | {
-                'hover':       {'color': TTkColor.fgbg("#dddd88","#000050")+TTkColor.BOLD,
-                                'borderColor': TTkColor.fg("#AAFFFF")+TTkColor.BOLD},
+                'hover':       {'color': TTkColor.fgbg("#dddd88","#0000AA")+TTkColor.BOLD,
+                                'borderColor': TTkColor.fg("#FFAA40")+TTkColor.BOLD},
             }
 
     __slots__ = (
@@ -188,7 +193,7 @@ class TTkTabButton(_TTkTabColorButton):
         super().__init__(**kwargs)
         self._closeButtonPressed = False
         self._resetSize()
-        self.setFocusPolicy(TTkK.ClickFocus)
+        self.setFocusPolicy(TTkK.ParentFocus)
 
     def _resetSize(self):
         style = self.currentStyle()
@@ -625,6 +630,14 @@ class TTkTabBar(TTkContainer):
             else:
                 b.setTabStatus(TTkK.Unchecked)
 
+            if i == self._currentIndex:
+                b.mergeStyle(_tabStyleSelected)
+            else:
+                b.mergeStyle(_tabStyleNormal)
+
+            if i == self._highlighted:
+                b.mergeStyle(_tabStyleFocussed)
+
         self.update()
 
     def _moveToTheLeft(self):
@@ -657,6 +670,7 @@ class TTkTabBar(TTkContainer):
         if ( evt.type == TTkK.Character and evt.key==" " ) or \
            ( evt.type == TTkK.SpecialKey and evt.key == TTkK.Key_Enter ):
             self._currentIndex = self._highlighted
+            self._highlighted = -1
             self._updateTabs()
             return True
         return False
@@ -763,11 +777,16 @@ class TTkTabWidget(TTkFrame):
 
         self.focusChanged.connect(self._focusChanged)
 
+    @pyTTkSlot(bool)
     def _focusChanged(self, focus):
         if focus:
+            self._tabBar._highlighted = self.currentIndex()
             self._tabBar.mergeStyle(_tabStyleFocussed)
+            self.tabButton(self.currentIndex()).mergeStyle(_tabStyleFocussed)
         else:
+            self._tabBar._highlighted = -1
             self._tabBar.mergeStyle(_tabStyleNormal)
+            self.tabButton(self.currentIndex()).mergeStyle(_tabStyleSelected)
 
     def count(self) -> int:
         return len(self._tabWidgets)

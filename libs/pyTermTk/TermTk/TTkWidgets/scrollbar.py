@@ -36,9 +36,10 @@ class TTkScrollBar(TTkWidget):
     '''TTkScrollBar'''
 
     classStyle = {
-                'default':     {'color': TTkColor.RST},
-                'disabled':    {'color': TTkColor.fg('#888888')},
-                'focus':       {'color': TTkColor.fg('#cccc00')},
+                'default':     {'color': TTkColor.fg('#AAAA80'), 'borderColor': TTkColor.fg('#222222')},
+                'disabled':    {'color': TTkColor.fg('#888888'), 'borderColor': TTkColor.fg('#808080')},
+                'focus':       {'color': TTkColor.fg('#DFFF00'), 'borderColor': TTkColor.fg('#403020')},
+                'hover':       {'color': TTkColor.fg('#FFBA40'), 'borderColor': TTkColor.fg('#402010')},
             }
 
     __slots__ = (
@@ -86,10 +87,10 @@ class TTkScrollBar(TTkWidget):
 
         if self._orientation == TTkK.VERTICAL:
             self.setMaximumWidth(1)
-            self.setMinimumSize(1,3)
+            self.setMinimumSize(1,1)
         else:
             self.setMaximumHeight(1)
-            self.setMinimumSize(3,1)
+            self.setMinimumSize(1,1)
         self.setFocusPolicy(TTkK.ClickFocus)
 
     def orientation(self):
@@ -108,7 +109,6 @@ class TTkScrollBar(TTkWidget):
     '''
     def paintEvent(self, canvas):
         style = self.currentStyle()
-        color   = style['color']
 
         if self._orientation == TTkK.VERTICAL:
             size=self._height
@@ -128,7 +128,16 @@ class TTkScrollBar(TTkWidget):
             # convert i screen coordinates
             aa = asciiDrawingSize * a // (self._maximum - self._minimum)
             bb = aa + asciiStep
-        canvas.drawScroll(pos=(0,0),size=size,slider=(aa+1,bb+1),orientation=self._orientation, color=color)
+
+        canvas.drawScroll(
+            pos=(0,0),
+            size=size,
+            slider=(aa+1,bb+1),
+            orientation=self._orientation,
+            color=style['color'],
+            borderColor=style['borderColor']
+        )
+
         # Update the screen position coordinates
         self._screenPgDown =   ( 1 ,    aa+1     )
         self._screenScroller = ( aa+1 , bb+1)
@@ -181,7 +190,7 @@ class TTkScrollBar(TTkWidget):
 
         size2 = size-2
         asciiStep = self._screenScroller[1] - self._screenScroller[0]
-        asciiDrawingSize = size2 - asciiStep
+        asciiDrawingSize = max(1, size2 - asciiStep)
 
         a =  aa * (self._maximum - self._minimum) // asciiDrawingSize
 

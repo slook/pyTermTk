@@ -52,6 +52,7 @@ class TTkTheme():
     menuBar   = draw_utf8.TTkTheme.menuBar
     tab       = draw_utf8.TTkTheme.tab
     braille   = draw_utf8.TTkTheme.braille
+    checkbox  = draw_utf8.TTkTheme.checkbox
     unicodeWideOverflowCh = draw_utf8.TTkTheme.unicodeWideOverflowCh
     progressbarBlocks = draw_utf8.TTkTheme.progressbarBlocks
 
@@ -89,6 +90,7 @@ class TTkTheme():
         TTkTheme.menuBar   = theme['draw'].TTkTheme.menuBar
         TTkTheme.tab       = theme['draw'].TTkTheme.tab
         TTkTheme.braille   = theme['draw'].TTkTheme.braille
+        TTkTheme.checkbox  = theme['draw'].TTkTheme.checkbox
         TTkTheme.unicodeWideOverflowCh = theme['draw'].TTkTheme.unicodeWideOverflowCh
         TTkTheme.progressbarBlocks = theme['draw'].TTkTheme.progressbarBlocks
 
