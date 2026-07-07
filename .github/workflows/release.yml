@@ -147,8 +147,7 @@ jobs:
             fi
           echo '::endgroup::'
 
-      - name: Define the Matrix strategy1
-        if: ${{ steps.release-please.outputs.releases_created == 'true'}}
+      - name: Define the Matrix strategy
         id: set-matrix
         env:
           RP_OUT: ${{ toJson(steps.release-please.outputs) }}
