@@ -1,5 +1,5 @@
 # Use the latest Ubuntu image as the base
-FROM ubuntu:latest
+FROM ubuntu:24.04
 # FROM --platform=linux/arm64 ubuntu:latest
 # FROM --platform=linux/amd64 ubuntu:latest
 
@@ -10,7 +10,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
     python3  python3-pip python3-venv \
     maven ant sudo \
-    libicu78 sqlite3 \
+    libicu74 sqlite3 \
     gh git curl wget jq \
     zip unzip tar \
     && apt-get clean

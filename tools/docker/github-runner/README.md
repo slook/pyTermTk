@@ -5,7 +5,8 @@
 #   _GITHUB_TOKEN=<your_github_runner_token>
 #   docker build --build-arg RUNNER_TOKEN=${_GITHUB_TOKEN} -t github-runner .
 
-docker build -t github-runner .
+# docker buildx build --platform=linux/amd64 -t github-runner .
+docker buildx build -t github-runner .
 ```
 
 # Run the runner
