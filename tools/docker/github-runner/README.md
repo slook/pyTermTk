@@ -12,9 +12,21 @@ docker buildx build -t github-runner .
 # Run the runner
 you can spawn as many runner as you want just changing the name
 ```bash
-_GITHUB_TOKEN=<your_github_runner_token>
-_RUNNER_NAME=runner_X
+GITHUB_TOKEN=<your_github_runner_token>
+RUNNER_NAME=runner_X
 docker run -it --rm github-runner ${_GITHUB_TOKEN} ${_RUNNER_NAME}
+```
+
+# Run the runner using Docker Compose
+```bash
+GITHUB_TOKEN=<your_github_runner_token>
+docker compose up -d --scale runner=5
+
+docker compose ps
+
+# Scale up or down
+docker compose up -d --scale runner=10
+docker compose up -d --scale runner=3
 ```
 
 ## note:
