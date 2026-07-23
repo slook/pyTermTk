@@ -22,7 +22,7 @@
 
 __all__ = ['TTkTerminal']
 
-from typing import List
+from typing import Any, List
 
 from TermTk.TTkCore.constant import TTkK
 from TermTk.TTkCore.string import TTkString
@@ -48,7 +48,7 @@ class TTkTerminal(TTkAbstractScrollArea):
 
     __slots__ = ('_terminalView',)
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs:Any) -> None:
         super().__init__(**kwargs)
         kwargs.pop('parent',None)
         kwargs.pop('visible',None)
@@ -56,9 +56,9 @@ class TTkTerminal(TTkAbstractScrollArea):
         self.setFocusPolicy(TTkK.ClickFocus)
         self.setViewport(self._terminalView)
 
-    def close(self):
+    def close(self) -> None:
         self._terminalView.close()
-        return super().close()
+        super().close()
 
     #--FORWARD-AUTOGEN-START--#
     @property
